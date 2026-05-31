@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura3D - 자연어 AI 3D 모델 생성기</title>
+  <meta name="description" content="자연어 프롬프트를 사용하여 3D 모델을 즉각 생성하고 다운로드할 수 있는 혁신적인 WebGL 3D 뷰어 및 생성 도구입니다.">
+  
+  <!-- SEO & Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Material Symbols for Premium Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Controls -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="material-symbols-outlined logo-icon">blur_on</span>
+          <h1>Aura<span>3D</span></h1>
+        </div>
+        <p class="tagline">자연어로 구현하는 3D 월드</p>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="tabs-nav">
+        <button id="tab-btn-generate" class="tab-btn active" data-tab="tab-generate">
+          <span class="material-symbols-outlined">auto_awesome</span>생성
+        </button>
+        <button id="tab-btn-gallery" class="tab-btn" data-tab="tab-gallery">
+          <span class="material-symbols-outlined">folder_open</span>갤러리
+        </button>
+        <button id="tab-btn-settings" class="tab-btn" data-tab="tab-settings">
+          <span class="material-symbols-outlined">settings</span>설정
+        </button>
+      </nav>
+
+      <!-- Tab Content Area -->
+      <div class="tab-content-container">
+        
+        <!-- Tab 1: Generate -->
+        <div id="tab-generate" class="tab-content active">
+          <!-- Generation Mode Selector -->
+          <div class="mode-selector">
+            <span class="mode-label">생성 엔진 모드</span>
+            <div class="mode-toggle-group">
+              <button id="mode-btn-local" class="mode-btn active" title="로컬 자바스크립트로 기본 도형을 바로 생성합니다.">로컬</button>
+              <button id="mode-btn-three" class="mode-btn" title="Gemini AI로 Three.js 코드를 생성하여 웹에서 렌더링합니다.">Three AI</button>
+              <button id="mode-btn-blender" class="mode-btn" title="Gemini AI로 Blender 파이썬 코드를 생성하여 로컬 블렌더와 연동합니다.">Blender AI</button>
+            </div>
+          </div>
+
+          <!-- Presets -->
+          <div class="section-title">빠른 프리셋 (추천 프롬프트)</div>
+          <div class="presets-grid">
+            <button class="preset-card" data-prompt="눈사람">
+              <span class="preset-emoji">⛄</span> 눈사람
+            </button>
+            <button class="preset-card" data-prompt="갈색 나무">
+              <span class="preset-emoji">🌲</span> 소나무
+            </button>
+            <button class="preset-card" data-prompt="식탁 테이블">
+              <span class="preset-emoji">🍽️</span> 식탁 테이블
+            </button>
+            <button class="preset-card" data-prompt="검과 손잡이">
+              <span class="preset-emoji">⚔️</span> 전사의 칼
+            </button>
+            <button class="preset-card" data-prompt="안락의자">
+              <span class="preset-emoji">🪑</span> 안락 의자
+            </button>
+            <button class="preset-card" data-prompt="작은 집">
+              <span class="preset-emoji">🏠</span> Cozy 집
+            </button>
+          </div>
+
+          <!-- Prompt Area -->
+          <div class="prompt-container">
+            <label for="prompt-input" class="input-label">3D 모델 설명 입력</label>
+            <textarea id="prompt-input" placeholder="원하는 3D 모델을 상세하게 묘사해 보세요.&#10;예: '빨간색 큐브 위에 파란색 구와 노란색 실린더가 나란히 있는 모양'&#10;(AI 엔진 선택 시 더욱 정교하고 풍부한 3D 생성이 가능합니다)"></textarea>
+            
+            <button id="generate-btn" class="btn-primary">
+              <span class="material-symbols-outlined">auto_awesome</span>
+              <span id="generate-btn-text">3D 모델 생성하기</span>
+            </button>
+          </div>
+
+          <!-- Code Display Panel (Only visible for code engines) -->
+          <div id="code-output-container" class="code-output-container hidden">
+            <div class="code-output-header">
+              <span class="code-title" id="code-title-text">생성된 스크립트 코드</span>
+              <div class="code-actions">
+                <button id="btn-copy-code" class="btn-code-action" title="코드 복사">
+                  <span class="material-symbols-outlined">content_copy</span>
+                </button>
+                <button id="btn-download-code" class="btn-code-action" title="파일 다운로드">
+                  <span class="material-symbols-outlined">download_for_offline</span>
+                </button>
+              </div>
+            </div>
+            <div class="code-pre-wrapper">
+              <pre><code id="code-block-display"># 코드가 여기에 표시됩니다.</code></pre>
+            </div>
+            <button id="btn-run-blender-local" class="btn-secondary hidden" title="설정된 경로의 블렌더를 사용해 즉시 3D 파일을 추출합니다.">
+              <span class="material-symbols-outlined">play_arrow</span>
+              <span>로컬 블렌더로 모델 빌드</span>
+            </button>
+          </div>
+
+          <!-- Blender Manual Instruction Guide -->
+          <div id="blender-guide-panel" class="blender-guide-panel hidden">
+            <h4>💡 블렌더 실시간 소켓 연동 가이드</h4>
+            <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
+              실시간 조립을 위해 블렌더 소켓 서버를 실행해야 합니다.
+            </p>
+            <button id="btn-launch-blender-gui-shortcut" class="btn-primary" style="width: 100%; padding: 10px; margin-bottom: 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-dark);">
+              <span class="material-symbols-outlined">rocket_launch</span>
+              <span>블렌더 자동 실행 & 연동하기</span>
+            </button>
+            <hr style="border: none; border-top: 1px dashed rgba(255,255,255,0.15); margin-bottom: 10px;">
+            <span style="font-size: 11.5px; font-weight: bold; color: var(--text-main); display: block; margin-bottom: 6px;">또는 수동 실행 방법:</span>
+            <ol>
+              <li>우측 상단 <span>복사(content_copy)</span> 버튼을 눌러 스크립트를 복사합니다.</li>
+              <li>블렌더를 켜고, 상단 탭 맨 끝의 <b>Scripting</b> 메뉴를 클릭합니다.</li>
+              <li><b>New</b> 버튼을 클릭하여 새 문서를 만들고 코드를 붙여넣습니다.</li>
+              <li>상단의 <b>Run Script (▶)</b> 단추를 누르면 3D 형상이 생성됩니다!</li>
+            </ol>
+          </div>
+
+          <!-- Status & Log Viewer -->
+          <div id="status-panel" class="status-panel hidden">
+            <div class="status-header">
+              <span class="status-title">생성 상태 로그</span>
+              <span class="status-badge" id="status-badge-text">대기 중</span>
+            </div>
+            <div id="progress-container" class="progress-container">
+              <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <div id="log-output" class="log-output"></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Gallery -->
+        <div id="tab-gallery" class="tab-content">
+          <div class="gallery-header">
+            <h3>생성 기록</h3>
+            <button id="clear-gallery-btn" class="btn-text">전체 삭제</button>
+          </div>
+          <div id="gallery-list" class="gallery-list">
+            <div class="empty-gallery">
+              <span class="material-symbols-outlined">inventory_2</span>
+              <p>생성된 3D 모델이 없습니다.<br>첫 모델을 만들어 보세요!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Settings -->
+        <div id="tab-settings" class="tab-content">
+          <div class="settings-group">
+            <h3>API 키 설정 (AI 엔진 전용)</h3>
+            <p class="settings-desc">AI 모드를 사용하려면 Gemini API Key가 필요합니다. 입력된 키는 로컬 스토리지에만 보관됩니다.</p>
+            
+            <div class="input-group">
+              <label for="api-key-input">Gemini API Key</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="api-key-input" placeholder="AI 키를 입력하세요 (AIzaSy...)">
+                <button id="toggle-key-visibility" class="btn-icon">
+                  <span class="material-symbols-outlined">visibility</span>
+                </button>
+              </div>
+              <a href="https://aistudio.google.com/" target="_blank" class="helper-link">무료 Gemini API Key 발급받기 &rarr;</a>
+            </div>
+
+            <div class="input-group" style="margin-top: 12px;">
+              <label for="model-select">AI 모델 선택</label>
+              <select id="model-select" style="width: 100%; background-color: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 10px 12px; color: var(--text-main); font-size: 13px; outline: none; transition: var(--transition-smooth); cursor: pointer;">
+                <option value="gemini-1.5-flash">gemini-1.5-flash (기본 권장)</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                <option value="gemini-2.5-flash">gemini-2.5-flash (최신 고속)</option>
+                <option value="gemini-3.5-flash">gemini-3.5-flash (차세대 고속)</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro (대형 고성능)</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro (최신 고성능)</option>
+                <option value="gemini-3.5-pro">gemini-3.5-pro (차세대 고성능)</option>
+                <option value="custom">직접 이름 입력...</option>
+              </select>
+              <p class="input-helper">API 키 권한에 맞거나 작동 가능한 모델을 직접 선택할 수 있습니다.</p>
+            </div>
+
+            <div id="custom-model-wrapper" class="input-group hidden" style="margin-top: 10px;">
+              <label for="custom-model-input">커스텀 모델 식별자(Identifier)</label>
+              <input type="text" id="custom-model-input" placeholder="예: gemini-3.5-flash-high" style="width: 100%; background-color: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 10px 12px; color: var(--text-main); font-size: 13px; outline: none; transition: var(--transition-smooth);">
+              <p class="input-helper">특정 환경용 커스텀 모델(예: gemini-3.5-flash-high)의 고유 API ID를 입력하세요.</p>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>Blender 연동 설정 (블렌더 모드 전용)</h3>
+            <p class="settings-desc">로컬에 설치된 Blender.exe 실행 경로 및 실시간 소켓 연동 방식을 구성합니다.</p>
+            
+            <div class="input-group">
+              <label for="blender-path-input">Blender.exe 설치 경로 (CLI 백업용)</label>
+              <input type="text" id="blender-path-input" placeholder="예: C:\Program Files\Blender Foundation\Blender 4.0\blender.exe">
+              <p class="input-helper">소켓 연동이 꺼져 있거나 연결에 실패할 때 백그라운드 빌드를 수행할 실행 경로입니다.</p>
+            </div>
+
+            <div class="input-group" style="margin-top: 10px;">
+              <button id="btn-launch-blender-gui" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-dark); font-weight: 700;">
+                <span class="material-symbols-outlined">rocket_launch</span>
+                <span>블렌더 자동 실행 & 소켓 연동</span>
+              </button>
+              <p class="input-helper">설정된 경로의 블렌더 프로그램을 실행하고 백그라운드 소켓 서버를 즉시 자동 구동합니다.</p>
+            </div>
+
+            <div class="toggle-setting" style="margin-top: 10px;">
+              <label for="setting-socket-mode">실시간 소켓 연동 활성화</label>
+              <input type="checkbox" id="setting-socket-mode" checked>
+            </div>
+
+            <div class="input-group" style="margin-top: 10px;">
+              <label for="socket-port-input">소켓 포트 번호</label>
+              <input type="number" id="socket-port-input" value="5555" min="1024" max="65535" style="width: 100%; background-color: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 10px 12px; color: var(--text-main); font-size: 13px; outline: none; transition: var(--transition-smooth);">
+            </div>
+
+            <div class="input-group" style="margin-top: 12px;">
+              <label>블렌더 상주 서버 구동 파일</label>
+              <button id="btn-download-server-script" class="btn-secondary" style="width: 100%; padding: 10px; font-size: 12.5px;">
+                <span class="material-symbols-outlined">download</span>
+                <span>연동 서버 파일 다운로드</span>
+              </button>
+              <p class="input-helper">이 파일을 다운받아 블렌더 내 Scripting 탭에서 실행(▶)해 두시면 0.1초 만에 실시간으로 물체가 조립됩니다.</p>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>3D 환경 설정</h3>
+            
+            <div class="toggle-setting">
+              <label for="setting-grid">그리드(바닥망) 표시</label>
+              <input type="checkbox" id="setting-grid" checked>
+            </div>
+
+            <div class="toggle-setting">
+              <label for="setting-axes">좌표축 헬퍼 표시</label>
+              <input type="checkbox" id="setting-axes" checked>
+            </div>
+
+            <div class="toggle-setting">
+              <label for="setting-shadows">그림자 효과 활성화</label>
+              <input type="checkbox" id="setting-shadows" checked>
+            </div>
+
+            <div class="toggle-setting">
+              <label for="setting-autorotate">오토 로테이트 (회전)</label>
+              <input type="checkbox" id="setting-autorotate">
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>뷰어 배경 테마</h3>
+            <div class="theme-buttons">
+              <button class="theme-btn active" data-theme="dark" style="background: linear-gradient(135deg, #090a0f, #151821);"></button>
+              <button class="theme-btn" data-theme="gray" style="background: linear-gradient(135deg, #1c1d24, #2a2c35);"></button>
+              <button class="theme-btn" data-theme="blue" style="background: linear-gradient(135deg, #081120, #0c203b);"></button>
+              <button class="theme-btn" data-theme="light" style="background: linear-gradient(135deg, #eef1f6, #dce3eb);"></button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="sidebar-footer">
+        <p>© 2026 Aura3D. Powered by Three.js & Blender</p>
+      </div>
+    </aside>
+
+    <!-- 3D Viewer Workspace -->
+    <main class="viewer-container">
+      <!-- 3D Canvas -->
+      <div id="canvas-container">
+        <canvas id="three-canvas"></canvas>
+      </div>
+
+      <!-- Top Overlay Controls -->
+      <div class="viewer-controls">
+        <div class="control-group">
+          <button id="btn-reset-camera" class="btn-control" title="카메라 위치 초기화">
+            <span class="material-symbols-outlined">videocam</span> 카메라 리셋
+          </button>
+          <button id="btn-toggle-wireframe" class="btn-control" title="와이어프레임 모드 토글">
+            <span class="material-symbols-outlined">grid_4x4</span> 와이어프레임
+          </button>
+          <button id="btn-toggle-light" class="btn-control" title="조명 모드 변경">
+            <span class="material-symbols-outlined">lightbulb</span> 조명 변경
+          </button>
+        </div>
+
+        <div class="control-group">
+          <button id="export-dropdown-btn" class="btn-export">
+            <span class="material-symbols-outlined">download</span> 내보내기
+            <span class="material-symbols-outlined dropdown-arrow">keyboard_arrow_down</span>
+          </button>
+          <div id="export-menu" class="export-dropdown-menu">
+            <button class="export-item" data-format="gltf">GLTF 포맷 (.gltf)</button>
+            <button class="export-item" data-format="obj">OBJ 포맷 (.obj)</button>
+            <button class="export-item" data-format="stl">STL 포맷 (.stl)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Polycount / Stats Badge -->
+      <div class="viewer-stats">
+        <div class="stat-item">
+          <span class="stat-label">정점 수</span>
+          <span id="stat-vertices" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">삼각형 페이스</span>
+          <span id="stat-faces" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">엔진 모드</span>
+          <span id="stat-engine" class="stat-value">-</span>
+        </div>
+      </div>
+
+      <!-- Zoom/Orbit HUD Help -->
+      <div class="viewer-hint">
+        <span class="material-symbols-outlined">mouse</span>
+        좌클릭: 회전 | 우클릭: 이동 | 스크롤: 확대/축소
+      </div>
+    </main>
+  </div>
+
+  <!-- Three.js and Exporters/Loaders CDNs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+  
+  <script src="app.js"></script>
+</body>
+</html>

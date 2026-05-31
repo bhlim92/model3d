@@ -1,0 +1,21 @@
+{
+  "name": "aura3d-model-generator",
+  "version": "1.0.0",
+  "description": "자연어 프롬프트와 Gemini AI를 활용한 WebGL 3D 모델 생성 프로그램",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "keywords": [
+    "three.js",
+    "webgl",
+    "3d-generator",
+    "gemini-api",
+    "procedural-generation"
+  ],
+  "author": "Aura3D Team",
+  "license": "MIT"
+}
