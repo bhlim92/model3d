@@ -1142,7 +1142,8 @@ async function runBlenderLocalProcess(customProgressBar = null) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'bypass-tunnel-reminder': 'true'
       },
       body: JSON.stringify({
         code: generatedScriptCode,
@@ -1221,7 +1222,8 @@ async function launchBlenderGUI() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
+        'ngrok-skip-browser-warning': 'true',
+        'bypass-tunnel-reminder': 'true'
       },
       body: JSON.stringify({
         blenderPath: blenderPath
