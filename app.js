@@ -77,7 +77,7 @@ function initThree() {
   camera.position.set(5, 5, 8);
   
   // Renderer
-  renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -1316,11 +1316,23 @@ function saveToGallery(prompt, mode, code) {
   let gallery = JSON.parse(localStorage.getItem('aura3d_gallery')) || [];
   gallery = gallery.filter(item => item.prompt !== prompt);
   
+  // Capturing thumbnail image from WebGL canvas
+  let thumbnail = '';
+  try {
+    if (renderer && scene && camera) {
+      renderer.render(scene, camera); // Force re-render to make sure buffer is populated
+      thumbnail = renderer.domElement.toDataURL("image/png");
+    }
+  } catch (e) {
+    console.error("썸네일 생성 실패:", e);
+  }
+
   const newItem = {
     id: Date.now().toString(),
     prompt: prompt,
     mode: mode,
     code: code,
+    thumbnail: thumbnail,
     date: new Date().toLocaleDateString('ko-KR')
   };
   
@@ -1356,12 +1368,23 @@ function renderGallery() {
     if (item.mode === 'blender') engineLabel = 'Blender AI';
     
     card.innerHTML = `
-      <div class="gallery-item-details">
-        <span class="gallery-item-prompt" title="${item.prompt}">${item.prompt}</span>
-        <div class="gallery-item-meta">
-          <span>${item.date}</span>
-          <span>•</span>
-          <span>${engineLabel} 엔진</span>
+      <div class="gallery-item-content">
+        ${item.thumbnail ? `
+          <div class="gallery-item-thumb-wrapper">
+            <img src="${item.thumbnail}" class="gallery-item-thumb" alt="${item.prompt}">
+          </div>
+        ` : `
+          <div class="gallery-item-thumb-wrapper empty-thumb">
+            <span class="material-symbols-outlined">texture</span>
+          </div>
+        `}
+        <div class="gallery-item-details">
+          <span class="gallery-item-prompt" title="${item.prompt}">${item.prompt}</span>
+          <div class="gallery-item-meta">
+            <span>${item.date}</span>
+            <span>•</span>
+            <span>${engineLabel} 엔진</span>
+          </div>
         </div>
       </div>
       <button class="gallery-item-delete" data-id="${item.id}" title="기록 삭제">
