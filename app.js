@@ -1141,7 +1141,8 @@ async function runBlenderLocalProcess(customProgressBar = null) {
     const response = await fetch(getApiUrl('/api/run-blender'), {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify({
         code: generatedScriptCode,
@@ -1219,7 +1220,8 @@ async function launchBlenderGUI() {
     const response = await fetch(getApiUrl('/api/launch-blender'), {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify({
         blenderPath: blenderPath
