@@ -1004,7 +1004,7 @@ async function generateModelBlenderAI(prompt, progressBar) {
   log("Gemini API 블렌더 파이썬 스크립트 요청 중...");
   progressBar.style.width = '30%';
   
-  const systemPrompt = `You are a Blender Python API (bpy) expert developer. Your task is to output valid Python code for Blender to programmatically build a detailed, aesthetic 3D model based on the user's natural language request.
+  const systemPrompt = `You are a Blender Python API (bpy) expert developer (compatible with Blender 4.x and 5.x). Your task is to output valid Python code for Blender to programmatically build a detailed, aesthetic 3D model based on the user's natural language request.
 
 CRITICAL INSTRUCTIONS:
 1. Return ONLY executable Python script. Do NOT wrap your code in html templates or markdown text OTHER than standard \`\`\`python ... \`\`\` code block.
@@ -1015,7 +1015,12 @@ CRITICAL INSTRUCTIONS:
    - Position objects precisely by setting obj.location = (x, y, z).
    - Scale objects by setting obj.scale = (x, y, z).
    - Add modifier if needed to smooth (e.g. Subdivision Surface, Bevel).
-   - Create materials, define color (diffuse_color or use nodes), and link them to objects.
+   - Create materials, define color, and link them to objects.
+   - CRITICAL: Blender 4.x/5.x Principled BSDF shader socket name changes:
+     - Do NOT access inputs["Transmission"] or inputs["Specular"]. They will fail with KeyNotFound.
+     - For glass/transparency, use inputs["Transmission Weight"] instead of "Transmission".
+     - For specular reflection, use inputs["Specular IOR Level"] instead of "Specular".
+     - inputs["Base Color"], inputs["Roughness"], and inputs["Metallic"] are fully safe to use.
    - Create a rich, detailed, and creative assembly for: "${prompt}".
 5. Ground position: The grid is at z = 0. Align shapes so they stand on the grid (e.g. z >= 0). Note that Blender uses Z-up! (X-right, Y-forward, Z-up).
 6. Keep the script self-contained and syntax-error free. No explanations.
