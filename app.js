@@ -1023,7 +1023,7 @@ CRITICAL INSTRUCTIONS:
      - inputs["Base Color"], inputs["Roughness"], and inputs["Metallic"] are fully safe to use.
    - CRITICAL: Multi-user mesh modifier issues:
      - If you duplicate or mirror objects, they share mesh data. Applying modifiers on them directly throws a "Cannot apply to a multi user" crash.
-     - You MUST make the mesh single-user by writing `obj.data = obj.data.copy()` (where obj is the active object) before applying any modifiers on it.
+     - You MUST make the mesh single-user by writing 'obj.data = obj.data.copy()' (where obj is the active object) before applying any modifiers on it.
    - Create a rich, detailed, and creative assembly for: "${prompt}".
 5. Ground position: The grid is at z = 0. Align shapes so they stand on the grid (e.g. z >= 0). Note that Blender uses Z-up! (X-right, Y-forward, Z-up).
 6. Keep the script self-contained and syntax-error free. No explanations.
