@@ -59,3 +59,6 @@
 
 ## 🔍 추가 개선 사항
 - **3D 뷰어 카메라 줌인 제한 완화**: 세부 디테일을 더 가까이 관찰할 수 있도록 Three.js OrbitControls의 최소 줌인 도달 거리(`minDistance`)를 기존 `2`에서 `0.1`로 대폭 축소하고, 최대 줌아웃 거리(`maxDistance`)도 `40`으로 확장하였습니다.
+- **Vercel 클라우드 배포 완료**:
+  - **배포 주소**: [https://aura3d-model-generator.vercel.app](https://aura3d-model-generator.vercel.app)
+  - **하이브리드 터널링 연동 지원**: Vercel에 배포된 공용 주소에서 로컬 PC의 블렌더를 원격 연동하여 구동할 수 있도록, 웹앱 내에 `로컬 백엔드 서버 API URL` 입력 필드를 적용하고 로컬 Express 백엔드 서버에 CORS 허용 정책을 구성하였습니다.
