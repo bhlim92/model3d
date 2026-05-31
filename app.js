@@ -1024,6 +1024,8 @@ CRITICAL INSTRUCTIONS:
    - CRITICAL: Multi-user mesh modifier issues:
      - If you duplicate or mirror objects, they share mesh data. Applying modifiers on them directly throws a "Cannot apply to a multi user" crash.
      - You MUST make the mesh single-user by writing 'obj.data = obj.data.copy()' (where obj is the active object) before applying any modifiers on it.
+   - CRITICAL: Operator Arguments:
+     - Do NOT use the keyword argument 'enter_editmode' in any operator calls (like bpy.ops.mesh.* or bpy.ops.curve.*). Some operators do not recognize it and will throw an error. Simply omit it as it defaults to False anyway.
    - Create a rich, detailed, and creative assembly for: "${prompt}".
 5. Ground position: The grid is at z = 0. Align shapes so they stand on the grid (e.g. z >= 0). Note that Blender uses Z-up! (X-right, Y-forward, Z-up).
 6. Keep the script self-contained and syntax-error free. No explanations.
