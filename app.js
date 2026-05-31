@@ -660,7 +660,7 @@ async function generateModel() {
 // -------------------------------------------------------------
 // 1. LOCAL PROCEDURAL GENERATION ENGINE
 // -------------------------------------------------------------
-async function generateModelLocally(prompt, progressBar) {
+async function generateModelLocally(prompt, progressBar, shouldSave = true) {
   log("로컬 자연어 파서 가동 중...");
   progressBar.style.width = '30%';
   await sleep(300);
@@ -789,7 +789,9 @@ async function generateModelLocally(prompt, progressBar) {
   
   focusCameraOnObject();
   updateStats();
-  saveToGallery(prompt, 'local', '');
+  if (shouldSave) {
+    saveToGallery(prompt, 'local', '');
+  }
   log("3D 모델 로컬 생성이 완료되었습니다!", "success");
 }
 
@@ -1394,31 +1396,7 @@ function renderGallery() {
     
     card.addEventListener('click', (e) => {
       if (e.target.closest('.gallery-item-delete')) return;
-      
-      document.getElementById('prompt-input').value = item.prompt;
-      
-      currentEngineMode = item.mode;
-      const modeBtnLocal = document.getElementById('mode-btn-local');
-      const modeBtnThree = document.getElementById('mode-btn-three');
-      const modeBtnBlender = document.getElementById('mode-btn-blender');
-      
-      [modeBtnLocal, modeBtnThree, modeBtnBlender].forEach(b => b.classList.remove('active'));
-      
-      if (item.mode === 'three') {
-        modeBtnThree.classList.add('active');
-        document.getElementById('stat-engine').textContent = 'Three AI';
-        if (item.code) showCodeContainer("Three.js 스크립트 코드", item.code, false);
-      } else if (item.mode === 'blender') {
-        modeBtnBlender.classList.add('active');
-        document.getElementById('stat-engine').textContent = 'Blender AI';
-        if (item.code) showCodeContainer("블렌더 파이썬 스크립트", item.code, true);
-      } else {
-        modeBtnLocal.classList.add('active');
-        document.getElementById('stat-engine').textContent = '로컬 엔진';
-        hideCodeContainer();
-      }
-      
-      generateModel();
+      loadGalleryItem(item);
     });
     
     const deleteBtn = card.querySelector('.gallery-item-delete');
@@ -1451,4 +1429,73 @@ function getApiUrl(path) {
   const base = backendUrl.replace(/\/+$/, '');
   const cleanPath = '/' + path.replace(/^\/+/, '');
   return base + cleanPath;
+}
+
+// Load and render a model from the gallery without modifying list order
+async function loadGalleryItem(item) {
+  const statusPanel = document.getElementById('status-panel');
+  const progressBar = document.getElementById('progress-bar');
+  
+  statusPanel.classList.remove('hidden');
+  progressBar.style.width = '20%';
+  
+  clearModelGroup();
+  updateStats();
+  hideCodeContainer();
+  
+  log(`갤러리에서 "${item.prompt}" 불러오는 중 (엔진: ${item.mode.toUpperCase()})...`);
+  
+  document.getElementById('prompt-input').value = item.prompt;
+  currentEngineMode = item.mode;
+  
+  // Sync engine buttons UI
+  const modeBtnLocal = document.getElementById('mode-btn-local');
+  const modeBtnThree = document.getElementById('mode-btn-three');
+  const modeBtnBlender = document.getElementById('mode-btn-blender');
+  
+  [modeBtnLocal, modeBtnThree, modeBtnBlender].forEach(b => b.classList.remove('active'));
+  
+  if (item.mode === 'three') {
+    modeBtnThree.classList.add('active');
+    document.getElementById('stat-engine').textContent = 'Three AI';
+  } else if (item.mode === 'blender') {
+    modeBtnBlender.classList.add('active');
+    document.getElementById('stat-engine').textContent = 'Blender AI';
+  } else {
+    modeBtnLocal.classList.add('active');
+    document.getElementById('stat-engine').textContent = '로컬 엔진';
+  }
+
+  try {
+    if (item.mode === 'local') {
+      await generateModelLocally(item.prompt, progressBar, false); // Pass false to bypass saveToGallery
+    } else if (item.mode === 'three') {
+      progressBar.style.width = '60%';
+      showCodeContainer("Three.js 스크립트 코드", item.code, false);
+      
+      const sandboxFn = new Function('THREE', 'modelGroup', item.code);
+      sandboxFn(THREE, currentModelGroup);
+      
+      if (wireframeMode) {
+        currentModelGroup.traverse(node => {
+          if (node.isMesh && node.material) node.material.wireframe = true;
+        });
+      }
+      
+      progressBar.style.width = '100%';
+      await sleep(150);
+      focusCameraOnObject();
+      updateStats();
+      log("3D 모델 로딩 완료!", "success");
+    } else if (item.mode === 'blender') {
+      progressBar.style.width = '50%';
+      generatedScriptCode = item.code;
+      showCodeContainer("블렌더 파이썬 스크립트", item.code, true);
+      
+      // Directly run local blender process with cached code (bypasses Gemini API & saveToGallery)
+      await runBlenderLocalProcess(progressBar);
+    }
+  } catch (err) {
+    log(`불러오기 오류: ${err.message}`, 'error');
+  }
 }
