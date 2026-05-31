@@ -203,6 +203,12 @@
             <p class="settings-desc">로컬에 설치된 Blender.exe 실행 경로 및 실시간 소켓 연동 방식을 구성합니다.</p>
             
             <div class="input-group">
+              <label for="backend-url-input">로컬 백엔드 서버 API URL (Vercel 배포 시 필요)</label>
+              <input type="text" id="backend-url-input" placeholder="예: https://xxxx.ngrok-free.app (로컬 실행 시 비워두기)">
+              <p class="input-helper">Vercel 등 외부 서버에서 실행될 때, 로컬 PC에서 ngrok 등으로 터널링한 외부 URL 주소를 기입합니다. (로컬 실행 시에는 빈 칸으로 비워두면 됩니다.)</p>
+            </div>
+
+            <div class="input-group">
               <label for="blender-path-input">Blender.exe 설치 경로 (CLI 백업용)</label>
               <input type="text" id="blender-path-input" placeholder="예: C:\Program Files\Blender Foundation\Blender 4.0\blender.exe">
               <p class="input-helper">소켓 연동이 꺼져 있거나 연결에 실패할 때 백그라운드 빌드를 수행할 실행 경로입니다.</p>

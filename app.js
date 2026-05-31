@@ -16,6 +16,7 @@ let lightingMode = 'studio'; // 'studio', 'sunset', 'neon', 'flat'
 let wireframeMode = false;
 let autoRotate = false;
 let generatedScriptCode = ''; // Cache for copy/download
+let backendUrl = localStorage.getItem('aura3d_backend_url') || '';
 
 // Color and Shape mappings for Local Parser
 const COLOR_MAP = {
@@ -340,6 +341,16 @@ function initUI() {
     }
   });
 
+  // Backend URL input in settings
+  const backendUrlInput = document.getElementById('backend-url-input');
+  if (backendUrlInput) {
+    backendUrlInput.value = backendUrl;
+    backendUrlInput.addEventListener('input', (e) => {
+      backendUrl = e.target.value.trim();
+      localStorage.setItem('aura3d_backend_url', backendUrl);
+    });
+  }
+
   // Blender path input in settings
   const blenderPathInput = document.getElementById('blender-path-input');
   if (blenderPath) {
@@ -372,7 +383,7 @@ function initUI() {
   const downloadServerScriptBtn = document.getElementById('btn-download-server-script');
   downloadServerScriptBtn.addEventListener('click', () => {
     log("블렌더 연동 서버 파이썬 파일 다운로드 요청 중...");
-    fetch('/blender_socket_server.py')
+    fetch(getApiUrl('/blender_socket_server.py'))
       .then(response => {
         if (!response.ok) throw new Error("서버 파일 로드 실패");
         return response.text();
@@ -1127,7 +1138,7 @@ async function runBlenderLocalProcess(customProgressBar = null) {
   progressBar.style.width = '75%';
   
   try {
-    const response = await fetch('/api/run-blender', {
+    const response = await fetch(getApiUrl('/api/run-blender'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1205,7 +1216,7 @@ async function launchBlenderGUI() {
   log("블렌더 자동 기동 및 소켓 서버 활성화 요청 중...");
   
   try {
-    const response = await fetch('/api/launch-blender', {
+    const response = await fetch(getApiUrl('/api/launch-blender'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1393,4 +1404,14 @@ function deleteGalleryItem(id) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Get API absolute/relative URL based on backendUrl configuration
+function getApiUrl(path) {
+  if (!backendUrl) {
+    return path;
+  }
+  const base = backendUrl.replace(/\/+$/, '');
+  const cleanPath = '/' + path.replace(/^\/+/, '');
+  return base + cleanPath;
 }
