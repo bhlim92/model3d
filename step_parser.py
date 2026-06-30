@@ -181,7 +181,7 @@ def main():
     
     print(f"[Parser] Importing CAD STEP file: {step_path} ...")
     try:
-        assembly = cq.Assembly.importSTEP(step_path)
+        assembly = cq.Assembly.load(step_path)
     except Exception as e:
         print(f"Error importing STEP file via CadQuery: {str(e)}", file=sys.stderr)
         sys.exit(1)
