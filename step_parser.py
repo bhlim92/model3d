@@ -94,21 +94,21 @@ def process_node(assembly, output_mesh_dir, density=2700.0):
                     com = [0.0, 0.0, 0.0]
                     inertia_tensor = [[0.001, 0, 0], [0, 0.001, 0], [0, 0, 0.001]]
                 
-            node_data["geometry"] = {
-                "mesh_path": f"meshes/{mesh_filename}",
-                "mass": max(mass, 0.001),
-                "center_of_mass": com,
-                "inertia": {
-                    "ixx": max(inertia_tensor[0][0], 1e-5),
-                    "iyy": max(inertia_tensor[1][1], 1e-5),
-                    "izz": max(inertia_tensor[2][2], 1e-5),
-                    "ixy": inertia_tensor[0][1],
-                    "ixz": inertia_tensor[0][2],
-                    "iyz": inertia_tensor[1][2]
+                node_data["geometry"] = {
+                    "mesh_path": f"meshes/{mesh_filename}",
+                    "mass": max(mass, 0.001),
+                    "center_of_mass": com,
+                    "inertia": {
+                        "ixx": max(inertia_tensor[0][0], 1e-5),
+                        "iyy": max(inertia_tensor[1][1], 1e-5),
+                        "izz": max(inertia_tensor[2][2], 1e-5),
+                        "ixy": inertia_tensor[0][1],
+                        "ixz": inertia_tensor[0][2],
+                        "iyz": inertia_tensor[1][2]
+                    }
                 }
-            }
-        except Exception as e:
-            print(f"[Warning] Failed to export or parse mesh for {node_id}: {str(e)}", file=sys.stderr)
+            except Exception as e:
+                print(f"[Warning] Failed to export or parse mesh for {node_id}: {str(e)}", file=sys.stderr)
             
     # Process child assembly joints and links
     for child in assembly.children:
