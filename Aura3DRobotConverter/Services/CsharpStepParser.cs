@@ -133,6 +133,10 @@ namespace Aura3DRobotConverter.Services
             // Load mesh vertices using Helix Toolkit ModelImporter
             var importer = new ModelImporter();
             var modelGroup = importer.Load(stlPath);
+            if (modelGroup == null)
+            {
+                return (0.1, new Vector3D(0, 0, 0), new double[] { 1e-5, 1e-5, 1e-5, 0, 0, 0 });
+            }
             MeshGeometry3D? mesh = null;
 
             modelGroup.Traverse<GeometryModel3D>((geom, transform) =>
