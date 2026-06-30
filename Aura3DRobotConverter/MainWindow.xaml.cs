@@ -23,8 +23,6 @@ namespace Aura3DRobotConverter
 
     public partial class MainWindow : Window
     {
-        private readonly ParserBridge _parserBridge = new ParserBridge();
-        private readonly ExporterService _exporterService = new ExporterService();
         
         private RobotConfig? _config;
         private string _sessionDir = string.Empty;
@@ -39,18 +37,16 @@ namespace Aura3DRobotConverter
         {
             InitializeComponent();
             
-            // Resolve parent directory as CAD/daemon workspace path
+            // Resolve parent directory as CAD workspace path
             _workspacePath = AppDomain.CurrentDomain.BaseDirectory;
-            // Backtrack from bin/Debug/net9.0-windows to workspace root
+            // Backtrack to workspace root
             for (int i = 0; i < 4; i++)
             {
                 _workspacePath = Path.GetDirectoryName(_workspacePath) ?? _workspacePath;
             }
             
             Log($"[System] Workspace root resolved to: {_workspacePath}");
-            _parserBridge.StartDaemon(_workspacePath);
-            
-            Closed += (s, e) => _parserBridge.StopDaemon();
+            Log("[System] Pure C# .NET STEP-to-URDF/USD Compiler Ready (No Python dependencies).");
         }
 
         private void Log(string message)
@@ -87,8 +83,8 @@ namespace Aura3DRobotConverter
 
                 try
                 {
-                    Log("[Parser] Forwarding file to in-memory OpenCASCADE daemon...");
-                    var config = await _parserBridge.ParseStepFileAsync(stepPath, _sessionDir);
+                    Log("[Parser] Analyzing STEP file structure using native C# AnyCAD kernel...");
+                    var config = await Task.Run(() => CsharpStepParser.ParseStepFile(stepPath, _sessionDir));
 
                     if (config != null)
                     {
@@ -195,8 +191,15 @@ namespace Aura3DRobotConverter
                     
                     var visual = new ModelVisual3D { Content = model };
                     
-                    // Direct kinematic transform chain mapping
-                    visual.Transform = GetLinkTransform(link.Name);
+                    // Create scaling transform (convert STL mm to world meters)
+                    var scaleTransform = new ScaleTransform3D(0.001, 0.001, 0.001);
+                    var linkTransform = GetLinkTransform(link.Name);
+                    
+                    var combinedTransform = new Transform3DGroup();
+                    combinedTransform.Children.Add(scaleTransform);
+                    combinedTransform.Children.Add(linkTransform);
+                    
+                    visual.Transform = combinedTransform;
                     
                     Viewport.Children.Add(visual);
                     _addedRobotVisuals.Add(visual);
@@ -407,7 +410,7 @@ namespace Aura3DRobotConverter
                 Log("[Exporter] Packaging robot assembly configuration to URDF/USD formats...");
                 try
                 {
-                    string zipFilename = await _exporterService.ExportRobotModelAsync(_config, _sessionDir);
+                    string zipFilename = await Task.Run(() => CsharpRobotExporter.ExportRobotModel(_config, _sessionDir));
                     
                     string tempZipPath = Path.Combine(Path.GetDirectoryName(_sessionDir) ?? _sessionDir, zipFilename);
                     

@@ -30,3 +30,5 @@ C:\Users\samsung\proj\model3d\Aura3DRobotConverter\obj\Debug\net9.0-windows\refi
 C:\Users\samsung\proj\model3d\Aura3DRobotConverter\obj\Debug\net9.0-windows\Aura3DRobotConverter.pdb
 C:\Users\samsung\proj\model3d\Aura3DRobotConverter\obj\Debug\net9.0-windows\Aura3DRobotConverter.genruntimeconfig.cache
 C:\Users\samsung\proj\model3d\Aura3DRobotConverter\obj\Debug\net9.0-windows\ref\Aura3DRobotConverter.dll
+C:\Users\samsung\proj\model3d\Aura3DRobotConverter\bin\Debug\net9.0-windows\AnyCAD.Exchange.NET.dll
+C:\Users\samsung\proj\model3d\Aura3DRobotConverter\bin\Debug\net9.0-windows\AnyCAD.Foundation.NET.dll

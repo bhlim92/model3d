@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "/lYib4CaHjU=",
+  "dgSpecHash": "9NBWI5rBJhk=",
   "success": true,
   "projectFilePath": "C:\\Users\\samsung\\proj\\model3d\\Aura3DRobotConverter\\Aura3DRobotConverter.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\samsung\\.nuget\\packages\\anycad.foundation.net\\2026.6.12.1032\\anycad.foundation.net.2026.6.12.1032.nupkg.sha512",
     "C:\\Users\\samsung\\.nuget\\packages\\communitytoolkit.common\\8.3.2\\communitytoolkit.common.8.3.2.nupkg.sha512",
     "C:\\Users\\samsung\\.nuget\\packages\\communitytoolkit.diagnostics\\8.3.2\\communitytoolkit.diagnostics.8.3.2.nupkg.sha512",
     "C:\\Users\\samsung\\.nuget\\packages\\communitytoolkit.mvvm\\8.3.2\\communitytoolkit.mvvm.8.3.2.nupkg.sha512",

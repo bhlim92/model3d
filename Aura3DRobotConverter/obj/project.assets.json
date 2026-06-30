@@ -2,6 +2,25 @@
   "version": 3,
   "targets": {
     "net9.0-windows7.0": {
+      "AnyCAD.Foundation.NET/2026.6.12.1032": {
+        "type": "package",
+        "compile": {
+          "lib/net80/AnyCAD.Exchange.NET.dll": {
+            "related": ".xml"
+          },
+          "lib/net80/AnyCAD.Foundation.NET.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net80/AnyCAD.Exchange.NET.dll": {
+            "related": ".xml"
+          },
+          "lib/net80/AnyCAD.Foundation.NET.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "CommunityToolkit.Common/8.3.2": {
         "type": "package",
         "compile": {
@@ -1059,6 +1078,37 @@
     }
   },
   "libraries": {
+    "AnyCAD.Foundation.NET/2026.6.12.1032": {
+      "sha512": "yt6MekEjhsxfmtwLeUrvNuDJCSMG3MbjGdiGz/5NsjTjGhUDNp9TvA2qyrDMkubRoN1UBtEVU1yfYquaJ6MEhQ==",
+      "type": "package",
+      "path": "anycad.foundation.net/2026.6.12.1032",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE_NET.txt",
+        "anycad.foundation.net.2026.6.12.1032.nupkg.sha512",
+        "anycad.foundation.net.nuspec",
+        "images/icon.png",
+        "lib/net10.0/AnyCAD.Exchange.NET.dll",
+        "lib/net10.0/AnyCAD.Exchange.NET.xml",
+        "lib/net10.0/AnyCAD.Foundation.NET.dll",
+        "lib/net10.0/AnyCAD.Foundation.NET.xml",
+        "lib/net45/AnyCAD.Exchange.NET45.dll",
+        "lib/net45/AnyCAD.Foundation.NET45.dll",
+        "lib/net48/AnyCAD.Exchange.NET4.dll",
+        "lib/net48/AnyCAD.Exchange.NET4.xml",
+        "lib/net48/AnyCAD.Foundation.NET4.dll",
+        "lib/net48/AnyCAD.Foundation.NET4.xml",
+        "lib/net60/AnyCAD.Exchange.NET.dll",
+        "lib/net60/AnyCAD.Exchange.NET.xml",
+        "lib/net60/AnyCAD.Foundation.NET.dll",
+        "lib/net60/AnyCAD.Foundation.NET.xml",
+        "lib/net80/AnyCAD.Exchange.NET.dll",
+        "lib/net80/AnyCAD.Exchange.NET.xml",
+        "lib/net80/AnyCAD.Foundation.NET.dll",
+        "lib/net80/AnyCAD.Foundation.NET.xml"
+      ]
+    },
     "CommunityToolkit.Common/8.3.2": {
       "sha512": "DFk1MUDzCUZHWFGl33HQkD1XtHHKmgfnjJ6sD2JICDc6et4DaCxf6GBPCzAZ7jcgyy/BdUDk0DUztu1K+61Q6w==",
       "type": "package",
@@ -3611,6 +3661,7 @@
   },
   "projectFileDependencyGroups": {
     "net9.0-windows7.0": [
+      "AnyCAD.Foundation.NET >= 2026.6.12.1032",
       "HelixToolkit.Wpf >= 3.1.2"
     ]
   },
@@ -3665,6 +3716,10 @@
       "net9.0-windows7.0": {
         "targetAlias": "net9.0-windows",
         "dependencies": {
+          "AnyCAD.Foundation.NET": {
+            "target": "Package",
+            "version": "[2026.6.12.1032, )"
+          },
           "HelixToolkit.Wpf": {
             "target": "Package",
             "version": "[3.1.2, )"

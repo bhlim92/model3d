@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AnyCAD.Foundation.NET" Version="2026.6.12.1032" />
     <PackageReference Include="HelixToolkit.Wpf" Version="3.1.2" />
   </ItemGroup>
 

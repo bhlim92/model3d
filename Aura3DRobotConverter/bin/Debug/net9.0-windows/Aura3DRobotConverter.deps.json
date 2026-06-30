@@ -8,10 +8,23 @@
     ".NETCoreApp,Version=v9.0": {
       "Aura3DRobotConverter/1.0.0": {
         "dependencies": {
+          "AnyCAD.Foundation.NET": "2026.6.12.1032",
           "HelixToolkit.Wpf": "3.1.2"
         },
         "runtime": {
           "Aura3DRobotConverter.dll": {}
+        }
+      },
+      "AnyCAD.Foundation.NET/2026.6.12.1032": {
+        "runtime": {
+          "lib/net80/AnyCAD.Exchange.NET.dll": {
+            "assemblyVersion": "2026.6.12.1014",
+            "fileVersion": "2026.6.12.1014"
+          },
+          "lib/net80/AnyCAD.Foundation.NET.dll": {
+            "assemblyVersion": "2026.6.12.1014",
+            "fileVersion": "2026.6.12.1014"
+          }
         }
       },
       "CommunityToolkit.Common/8.3.2": {
@@ -561,6 +574,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "AnyCAD.Foundation.NET/2026.6.12.1032": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-yt6MekEjhsxfmtwLeUrvNuDJCSMG3MbjGdiGz/5NsjTjGhUDNp9TvA2qyrDMkubRoN1UBtEVU1yfYquaJ6MEhQ==",
+      "path": "anycad.foundation.net/2026.6.12.1032",
+      "hashPath": "anycad.foundation.net.2026.6.12.1032.nupkg.sha512"
     },
     "CommunityToolkit.Common/8.3.2": {
       "type": "package",
