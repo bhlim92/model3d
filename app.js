@@ -524,6 +524,9 @@ function initUI() {
   if (launchBlenderShortcutBtn) {
     launchBlenderShortcutBtn.addEventListener('click', launchBlenderGUI);
   }
+  
+  // Initialize CAD to URDF/USD Converter
+  initCADConverterUI();
 }
 
 // Show/Hide code containers
@@ -1498,4 +1501,374 @@ async function loadGalleryItem(item) {
   } catch (err) {
     log(`불러오기 오류: ${err.message}`, 'error');
   }
+}
+
+// ==========================================
+// STEP/STP CAD to URDF/USD Converter Logic
+// ==========================================
+let cadConversionId = null;
+let cadAssemblyData = null;
+let selectedJointIndex = -1;
+let cadLoadedMeshesGroup = null;
+
+function initCADConverterUI() {
+  const dropZone = document.getElementById('cad-drop-zone');
+  const fileInput = document.getElementById('cad-file-input');
+  const editorPanel = document.getElementById('cad-editor-panel');
+  const jointConfigPanel = document.getElementById('joint-config-panel');
+  const btnExport = document.getElementById('btn-export-urdf-usd');
+  
+  const robotNameInput = document.getElementById('robot-name-input');
+  const jointTypeSelect = document.getElementById('joint-type-select');
+  const limitLowerInput = document.getElementById('joint-limit-lower');
+  const limitUpperInput = document.getElementById('joint-limit-upper');
+  
+  if (!dropZone) return;
+
+  // Drag & drop handlers
+  dropZone.addEventListener('click', () => fileInput.click());
+  
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--accent-cyan)';
+    dropZone.style.backgroundColor = 'rgba(0, 240, 255, 0.05)';
+  });
+  
+  ['dragleave', 'dragend'].forEach(type => {
+    dropZone.addEventListener(type, () => {
+      dropZone.style.borderColor = 'var(--border-color)';
+      dropZone.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+    });
+  });
+  
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--border-color)';
+    dropZone.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+    
+    if (e.dataTransfer.files.length > 0) {
+      handleCADFile(e.dataTransfer.files[0]);
+    }
+  });
+  
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handleCADFile(e.target.files[0]);
+    }
+  });
+
+  // Joint configuration changes
+  jointTypeSelect.addEventListener('change', (e) => {
+    if (!cadAssemblyData || selectedJointIndex === -1) return;
+    const joint = cadAssemblyData.joints[selectedJointIndex];
+    joint.type = e.target.value;
+    
+    const limitGroup = document.getElementById('joint-limits-group');
+    if (joint.type === 'fixed' || joint.type === 'continuous') {
+      limitGroup.style.display = 'none';
+    } else {
+      limitGroup.style.display = 'grid';
+    }
+    
+    updateAssemblyTreeUI();
+    highlightJointIn3D(joint);
+  });
+  
+  [limitLowerInput, limitUpperInput].forEach(inp => {
+    inp.addEventListener('input', () => {
+      if (!cadAssemblyData || selectedJointIndex === -1) return;
+      const joint = cadAssemblyData.joints[selectedJointIndex];
+      joint.limits.lower = parseFloat(limitLowerInput.value) || 0;
+      joint.limits.upper = parseFloat(limitUpperInput.value) || 0;
+    });
+  });
+  
+  robotNameInput.addEventListener('input', (e) => {
+    if (cadAssemblyData) {
+      cadAssemblyData.robot_name = e.target.value.trim() || 'AuraRobot';
+    }
+  });
+
+  // Export URDF/USD package
+  btnExport.addEventListener('click', () => {
+    if (!cadConversionId || !cadAssemblyData) return;
+    
+    log("로봇 모델 패키지(URDF & USD) 내보내기를 진행 중입니다...");
+    btnExport.disabled = true;
+    
+    fetch(getApiUrl('/api/export-robot'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        conversionId: cadConversionId,
+        config: cadAssemblyData
+      })
+    })
+    .then(res => res.json())
+    .then(resData => {
+      btnExport.disabled = false;
+      if (resData.success) {
+        log(resData.message, "success");
+        // Trigger download
+        const fullUrl = getApiUrl(resData.zipUrl);
+        const a = document.createElement('a');
+        a.href = fullUrl;
+        a.download = `${cadAssemblyData.robot_name}_urdf_package.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        log("내보내기 실패: " + resData.error, "error");
+        alert("변환 패키지 생성에 실패했습니다: " + resData.error);
+      }
+    })
+    .catch(err => {
+      btnExport.disabled = false;
+      log("내보내기 중 에러: " + err.message, "error");
+      alert("변환 서버 요청 중 오류가 발생했습니다.");
+    });
+  });
+}
+
+function handleCADFile(file) {
+  log(`CAD 파일 업로드 시작: ${file.name} ...`);
+  const formData = new FormData();
+  formData.append('step_file', file);
+  
+  // Show loading state
+  const dropZone = document.getElementById('cad-drop-zone');
+  const editorPanel = document.getElementById('cad-editor-panel');
+  dropZone.innerHTML = `
+    <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-cyan); animation: spin 2s linear infinite;">sync</span>
+    <p style="font-size: 13px; font-weight: 500; margin:5px 0 0 0;">CAD 구조 분석 및 테셀레이션 중...</p>
+    <span style="font-size: 10px; color: var(--text-muted);">(파일 크기에 따라 수십 초 정도 소요될 수 있습니다)</span>
+  `;
+  
+  fetch(getApiUrl('/api/upload-step'), {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("분석 서버 응답 에러");
+    return res.json();
+  })
+  .then(resData => {
+    // Restore drop zone original state
+    dropZone.innerHTML = `
+      <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-cyan);">cloud_upload</span>
+      <p style="font-size: 13px; color: var(--text-main); font-weight: 500; margin:5px 0 0 0;">STEP / STP 파일을 드래그앤드롭하거나 클릭하세요.</p>
+      <span style="font-size: 10px; color: var(--text-muted);">(.step, .stp 지원)</span>
+    `;
+    
+    if (resData.success) {
+      log("CAD 파일 해석 성공!", "success");
+      cadConversionId = resData.conversionId;
+      cadAssemblyData = resData.data;
+      selectedJointIndex = -1;
+      
+      document.getElementById('robot-name-input').value = cadAssemblyData.robot_name;
+      editorPanel.classList.remove('hidden');
+      document.getElementById('joint-config-panel').classList.add('hidden');
+      
+      updateAssemblyTreeUI();
+      loadRobotMeshesToViewer();
+    } else {
+      log("CAD 변환 실패: " + resData.error, "error");
+      alert("STEP 변환에 실패했습니다: " + resData.error);
+    }
+  })
+  .catch(err => {
+    // Restore drop zone original state
+    dropZone.innerHTML = `
+      <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-cyan);">cloud_upload</span>
+      <p style="font-size: 13px; color: var(--text-main); font-weight: 500; margin:5px 0 0 0;">STEP / STP 파일을 드래그앤드롭하거나 클릭하세요.</p>
+      <span style="font-size: 10px; color: var(--text-muted);">(.step, .stp 지원)</span>
+    `;
+    log("업로드 중 에러: " + err.message, "error");
+    alert("서버 연결 실패 혹은 CAD 분석 오류가 발생했습니다.");
+  });
+}
+
+function updateAssemblyTreeUI() {
+  const treeContainer = document.getElementById('assembly-tree-container');
+  treeContainer.innerHTML = '';
+  
+  if (!cadAssemblyData) return;
+  
+  // 1. Root Link Row
+  const rootRow = document.createElement('div');
+  rootRow.className = 'tree-row root';
+  rootRow.style.cssText = 'padding: 6px; border-radius: var(--border-radius-sm); font-weight: bold; background-color: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 6px; font-size:12px; color:var(--text-main);';
+  rootRow.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px; color:var(--accent-pink);">precision_manufacturing</span> ${cadAssemblyData.root_link} (Root Link)`;
+  treeContainer.appendChild(rootRow);
+  
+  // 2. Joints List
+  cadAssemblyData.joints.forEach((joint, index) => {
+    const jointRow = document.createElement('div');
+    jointRow.className = `tree-row joint ${selectedJointIndex === index ? 'active' : ''}`;
+    
+    let typeIcon = 'link';
+    if (joint.type === 'revolute') typeIcon = 'rotate_left';
+    else if (joint.type === 'fixed') typeIcon = 'lock';
+    else if (joint.type === 'prismatic') typeIcon = 'linear_scale';
+    else if (joint.type === 'continuous') typeIcon = 'sync_saved_locally';
+
+    const isActive = selectedJointIndex === index;
+    jointRow.style.cssText = `
+      padding: 8px; 
+      border-radius: var(--border-radius-sm); 
+      background-color: ${isActive ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255,255,255,0.02)'}; 
+      border: 1px solid ${isActive ? 'var(--accent-cyan)' : 'transparent'};
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size:11px;
+      transition: all 0.2s ease;
+    `;
+    
+    jointRow.innerHTML = `
+      <div style="display:flex; align-items:center; gap:6px; font-weight:600; color: ${isActive ? 'var(--accent-cyan)' : 'var(--text-main)'};">
+        <span class="material-symbols-outlined" style="font-size:15px;">${typeIcon}</span>
+        <span>${joint.name}</span>
+        <span style="font-size:9px; opacity:0.6; background-color:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">${joint.type.toUpperCase()}</span>
+      </div>
+      <div style="font-size:9.5px; color:var(--text-muted); margin-left:21px;">
+        ${joint.parent} ➔ ${joint.child}
+      </div>
+    `;
+    
+    jointRow.addEventListener('click', () => {
+      selectJoint(index);
+    });
+    
+    treeContainer.appendChild(jointRow);
+  });
+}
+
+function selectJoint(index) {
+  selectedJointIndex = index;
+  updateAssemblyTreeUI();
+  
+  const joint = cadAssemblyData.joints[index];
+  const configPanel = document.getElementById('joint-config-panel');
+  configPanel.classList.remove('hidden');
+  
+  document.getElementById('joint-config-title').textContent = `조인트 설정: ${joint.name}`;
+  document.getElementById('joint-type-select').value = joint.type;
+  
+  const limitLower = document.getElementById('joint-limit-lower');
+  const limitUpper = document.getElementById('joint-limit-upper');
+  limitLower.value = joint.limits.lower;
+  limitUpper.value = joint.limits.upper;
+  
+  const limitGroup = document.getElementById('joint-limits-group');
+  if (joint.type === 'fixed' || joint.type === 'continuous') {
+    limitGroup.style.display = 'none';
+  } else {
+    limitGroup.style.display = 'grid';
+  }
+
+  // Highlight the joint in 3D viewer
+  highlightJointIn3D(joint);
+}
+
+function highlightJointIn3D(joint) {
+  // Clear any existing joint helper overlays
+  if (window.currentJointHelper) {
+    scene.remove(window.currentJointHelper);
+    window.currentJointHelper = null;
+  }
+  
+  // Create a 3D arrow helper representing the joint origin and rotation axis
+  const origin = joint.origin.xyz;
+  const axis = joint.axis;
+  
+  const pos = new THREE.Vector3(origin[0] / 1000.0, origin[1] / 1000.0, origin[2] / 1000.0);
+  const dir = new THREE.Vector3(axis[0], axis[1], axis[2]).normalize();
+  
+  const length = 0.5;
+  const color = 0x00f0ff; // Cyan
+  
+  const arrowHelper = new THREE.ArrowHelper(dir, pos, length, color, 0.1, 0.05);
+  scene.add(arrowHelper);
+  window.currentJointHelper = arrowHelper;
+  
+  // Look camera target at the joint position
+  controls.target.copy(pos);
+  controls.update();
+}
+
+function loadRobotMeshesToViewer() {
+  if (!cadAssemblyData || !cadConversionId) return;
+  
+  log("로봇 3D 링크 메쉬들을 WebGL 뷰어에 투영하고 있습니다...");
+  
+  // Clear current generator models
+  if (currentModelGroup) {
+    while (currentModelGroup.children.length > 0) {
+      currentModelGroup.remove(currentModelGroup.children[0]);
+    }
+  }
+  
+  if (cadLoadedMeshesGroup) {
+    scene.remove(cadLoadedMeshesGroup);
+  }
+  
+  // Clear existing helpers
+  if (window.currentJointHelper) {
+    scene.remove(window.currentJointHelper);
+    window.currentJointHelper = null;
+  }
+  
+  cadLoadedMeshesGroup = new THREE.Group();
+  scene.add(cadLoadedMeshesGroup);
+  
+  const loader = new THREE.STLLoader();
+  let meshesLoadedCount = 0;
+  const totalLinks = cadAssemblyData.links.filter(l => l.mesh_path).length;
+  
+  cadAssemblyData.links.forEach(link => {
+    if (!link.mesh_path) return;
+    
+    const fileUrl = getApiUrl(`/scratch/conversions/${cadConversionId}/${link.mesh_path}`);
+    loader.load(fileUrl, (geometry) => {
+      // Premium clearcoat metallic material representation
+      const material = new THREE.MeshPhysicalMaterial({
+        color: 0xb0bec5,
+        metalness: 0.7,
+        roughness: 0.15,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.1,
+        side: THREE.DoubleSide
+      });
+      
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      
+      // Scale from mm to meters
+      mesh.scale.set(0.001, 0.001, 0.001);
+      
+      cadLoadedMeshesGroup.add(mesh);
+      meshesLoadedCount++;
+      
+      if (meshesLoadedCount === totalLinks) {
+        // Auto adjust camera to fit the full bounding box of robot
+        const box = new THREE.Box3().setFromObject(cadLoadedMeshesGroup);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        controls.target.copy(center);
+        camera.position.set(center.x + size.x * 1.5, center.y + size.y * 1.5, center.z + size.z * 1.5);
+        controls.update();
+      }
+    }, 
+    undefined, 
+    (err) => {
+      console.error("Failed to load link mesh:", link.name, err);
+    });
+  });
 }

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const net = require('net');
 const { exec, spawn } = require('child_process');
+const multer = require('multer');
 
 const app = express();
 const PORT = 8080;
@@ -218,6 +219,132 @@ app.post('/api/launch-blender', (req, res) => {
       error: `블렌더 실행 도중 오류가 발생했습니다: ${err.message}`
     });
   }
+});
+
+// Configure Multer for temp CAD storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadTempDir = path.join(scratchDir, 'uploads');
+    if (!fs.existsSync(uploadTempDir)) {
+      fs.mkdirSync(uploadTempDir, { recursive: true });
+    }
+    cb(null, uploadTempDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
+/**
+ * API Endpoint: Upload and Parse STEP/STP robot assembly
+ */
+app.post('/api/upload-step', upload.single('step_file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: '파일이 제공되지 않았습니다.' });
+  }
+
+  const stepFilePath = req.file.path;
+  const conversionId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+  const conversionDir = path.join(scratchDir, 'conversions', conversionId);
+  fs.mkdirSync(conversionDir, { recursive: true });
+
+  const cmd = `python step_parser.py "${stepFilePath}" "${conversionDir}"`;
+  console.log(`[CAD Parser] Executing: ${cmd}`);
+
+  exec(cmd, (error, stdout, stderr) => {
+    // Delete temp upload file
+    try { fs.unlinkSync(stepFilePath); } catch (e) {}
+
+    if (error) {
+      console.error(`[CAD Parser Error]`, error.message);
+      return res.status(500).json({
+        success: false,
+        error: `STEP 파일 분석 실패: ${error.message}`,
+        details: stderr
+      });
+    }
+
+    const structureJsonPath = path.join(conversionDir, 'assembly_structure.json');
+    if (!fs.existsSync(structureJsonPath)) {
+      return res.status(500).json({
+        success: false,
+        error: '어셈블리 계층 분석 결과물(assembly_structure.json)이 생성되지 않았습니다.',
+        stdout: stdout
+      });
+    }
+
+    try {
+      const rawData = fs.readFileSync(structureJsonPath, 'utf8');
+      const assemblyData = JSON.parse(rawData);
+      
+      return res.json({
+        success: true,
+        conversionId: conversionId,
+        data: assemblyData
+      });
+    } catch (jsonErr) {
+      return res.status(500).json({
+        success: false,
+        error: `결과 파일 파싱 실패: ${jsonErr.message}`
+      });
+    }
+  });
+});
+
+/**
+ * API Endpoint: Edit kinematics and Export robot to URDF / USD zip package
+ */
+app.post('/api/export-robot', (req, res) => {
+  const { conversionId, config } = req.body;
+
+  if (!conversionId || !config) {
+    return res.status(400).json({ success: false, error: 'conversionId 또는 config 데이터가 누락되었습니다.' });
+  }
+
+  const conversionDir = path.join(scratchDir, 'conversions', conversionId);
+  if (!fs.existsSync(conversionDir)) {
+    return res.status(400).json({ success: false, error: '유효하지 않거나 만료된 세션(conversionId)입니다.' });
+  }
+
+  const structureJsonPath = path.join(conversionDir, 'assembly_structure.json');
+  try {
+    fs.writeFileSync(structureJsonPath, JSON.stringify(config, null, 2), 'utf8');
+  } catch (writeErr) {
+    return res.status(500).json({ success: false, error: `설정 저장 실패: ${writeErr.message}` });
+  }
+
+  const cmd = `python robot_exporter.py "${structureJsonPath}" "${conversionDir}"`;
+  console.log(`[Robot Exporter] Executing: ${cmd}`);
+
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`[Robot Exporter Error]`, error.message);
+      return res.status(500).json({
+        success: false,
+        error: `URDF/USD 변환 실패: ${error.message}`,
+        details: stderr
+      });
+    }
+
+    const zipFilename = `${config.robot_name || 'AuraRobot'}_urdf_package.zip`;
+    const zipFilePath = path.join(scratchDir, 'conversions', zipFilename);
+
+    if (!fs.existsSync(zipFilePath)) {
+      return res.status(500).json({
+        success: false,
+        error: '최종 변환 결과물 ZIP 파일이 생성되지 않았습니다.',
+        stdout: stdout
+      });
+    }
+
+    return res.json({
+      success: true,
+      zipUrl: `/scratch/conversions/${zipFilename}?t=` + Date.now(),
+      message: '로봇 모델 패키지(URDF & USD) 변환 성공!'
+    });
+  });
 });
 
 // Start Server

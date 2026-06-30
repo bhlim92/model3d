@@ -39,6 +39,9 @@
         <button id="tab-btn-settings" class="tab-btn" data-tab="tab-settings">
           <span class="material-symbols-outlined">settings</span>설정
         </button>
+        <button id="tab-btn-converter" class="tab-btn" data-tab="tab-converter">
+          <span class="material-symbols-outlined">precision_manufacturing</span>CAD 변환
+        </button>
       </nav>
 
       <!-- Tab Content Area -->
@@ -277,6 +280,65 @@
           </div>
         </div>
 
+        <!-- Tab 4: CAD to URDF/USD Converter -->
+        <div id="tab-converter" class="tab-content">
+          <div class="settings-group">
+            <h3>STEP / STP 로봇 어셈블리 변환</h3>
+            <p class="settings-desc">3D 로봇 CAD 파일(.step, .stp)을 업로드하여 계층을 추정하고 URDF & USD 모델로 변환 내보냅니다.</p>
+            
+            <div id="cad-drop-zone" class="cad-drop-zone" style="border: 2px dashed var(--border-color); border-radius: var(--border-radius-md); padding: 30px; text-align: center; cursor: pointer; transition: var(--transition-smooth); background-color: rgba(255,255,255,0.02); display: flex; flex-direction: column; align-items: center; gap: 10px;">
+              <span class="material-symbols-outlined" style="font-size: 40px; color: var(--accent-cyan);">cloud_upload</span>
+              <p style="font-size: 13px; color: var(--text-main); font-weight: 500;">STEP / STP 파일을 드래그앤드롭하거나 클릭하세요.</p>
+              <span style="font-size: 11px; color: var(--text-muted);">(.step, .stp 지원)</span>
+              <input type="file" id="cad-file-input" accept=".step,.stp" style="display: none;">
+            </div>
+
+            <!-- Conversion Editor Area -->
+            <div id="cad-editor-panel" class="cad-editor-panel hidden" style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+              <div class="input-group">
+                <label for="robot-name-input">로봇 이름 (Robot Name)</label>
+                <input type="text" id="robot-name-input" placeholder="AuraRobot" style="width:100%; background-color: rgba(0,0,0,0.25); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); padding:10px; color:var(--text-main);">
+              </div>
+
+              <div class="section-title" style="font-size: 13px; font-weight:bold; color:var(--text-main); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:5px; margin-top:10px;">조립 구조 계층 구조</div>
+              <div id="assembly-tree-container" class="assembly-tree-container" style="max-height: 250px; overflow-y: auto; background-color: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+                <!-- dynamic list -->
+              </div>
+
+              <!-- Joint Editor Panel -->
+              <div id="joint-config-panel" class="joint-config-panel hidden" style="background-color: rgba(0,0,0,0.15); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 10px; display: flex; flex-direction: column; gap: 10px; margin-top:5px;">
+                <h4 id="joint-config-title" style="font-size: 13px; color: var(--accent-cyan); font-weight:bold; margin:0;">조인트 설정: joint_1</h4>
+                
+                <div class="input-group">
+                  <label for="joint-type-select">조인트 타입</label>
+                  <select id="joint-type-select" style="width: 100%; background-color: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 10px; color: var(--text-main); font-size:12px; outline:none; cursor:pointer;">
+                    <option value="fixed">Fixed (고정)</option>
+                    <option value="revolute">Revolute (가동각 제한 회전)</option>
+                    <option value="continuous">Continuous (무한 회전)</option>
+                    <option value="prismatic">Prismatic (슬라이더 선형)</option>
+                  </select>
+                </div>
+                
+                <div class="joint-limits-group" id="joint-limits-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  <div class="input-group">
+                    <label for="joint-limit-lower">최소 한계 (Lower)</label>
+                    <input type="number" id="joint-limit-lower" step="0.1" value="-3.14" style="width:100%; background-color: rgba(0,0,0,0.25); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); padding:8px; color:var(--text-main); font-size:12px;">
+                  </div>
+                  <div class="input-group">
+                    <label for="joint-limit-upper">최대 한계 (Upper)</label>
+                    <input type="number" id="joint-limit-upper" step="0.1" value="3.14" style="width:100%; background-color: rgba(0,0,0,0.25); border:1px solid var(--border-color); border-radius:var(--border-radius-sm); padding:8px; color:var(--text-main); font-size:12px;">
+                  </div>
+                </div>
+              </div>
+
+              <button id="btn-export-urdf-usd" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-dark); font-weight: 700; padding:12px; margin-top:10px;">
+                <span class="material-symbols-outlined">download_for_offline</span>
+                <span>URDF & USD 패키지 생성 다운로드</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="sidebar-footer">
@@ -346,6 +408,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/OBJExporter.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
