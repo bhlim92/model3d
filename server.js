@@ -8,6 +8,39 @@ const multer = require('multer');
 const app = express();
 const PORT = 8080;
 
+// Start resident Python CAD Daemon Server automatically
+let daemonProcess = null;
+function startCADDaemon() {
+  console.log('[System] Launching resident Python CAD Daemon on port 8081...');
+  daemonProcess = spawn('python', ['step_parser_daemon.py']);
+  
+  daemonProcess.stdout.on('data', (data) => {
+    console.log(`[Daemon STDOUT] ${data.toString().trim()}`);
+  });
+  
+  daemonProcess.stderr.on('data', (data) => {
+    console.error(`[Daemon STDERR] ${data.toString().trim()}`);
+  });
+  
+  daemonProcess.on('close', (code) => {
+    console.log(`[Daemon] Process exited with code ${code}`);
+  });
+}
+startCADDaemon();
+
+// Clean up daemon process on server shutdown
+process.on('exit', () => {
+  if (daemonProcess) daemonProcess.kill();
+});
+process.on('SIGINT', () => {
+  if (daemonProcess) daemonProcess.kill();
+  process.exit();
+});
+process.on('SIGTERM', () => {
+  if (daemonProcess) daemonProcess.kill();
+  process.exit();
+});
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, ngrok-skip-browser-warning, bypass-tunnel-reminder');
@@ -238,9 +271,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 /**
- * API Endpoint: Upload and Parse STEP/STP robot assembly
+ * API Endpoint: Upload and Parse STEP/STP robot assembly (Uses Daemon)
  */
-app.post('/api/upload-step', upload.single('step_file'), (req, res) => {
+app.post('/api/upload-step', upload.single('step_file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: '파일이 제공되지 않았습니다.' });
   }
@@ -250,53 +283,56 @@ app.post('/api/upload-step', upload.single('step_file'), (req, res) => {
   const conversionDir = path.join(scratchDir, 'conversions', conversionId);
   fs.mkdirSync(conversionDir, { recursive: true });
 
-  const cmd = `python step_parser.py "${stepFilePath}" "${conversionDir}"`;
-  console.log(`[CAD Parser] Executing: ${cmd}`);
-
-  exec(cmd, (error, stdout, stderr) => {
-    // Delete temp upload file
+  try {
+    // Read STEP file bytes and encode to base64
+    const stepBytes = fs.readFileSync(stepFilePath);
+    const stepBase64 = stepBytes.toString('base64');
+    
+    // Call resident python daemon server
+    const response = await fetch('http://localhost:8081/parse', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        step_data: stepBase64,
+        output_dir: conversionDir,
+        filename: req.file.originalname
+      })
+    });
+    
+    // Clean up temp uploaded file
     try { fs.unlinkSync(stepFilePath); } catch (e) {}
-
-    if (error) {
-      console.error(`[CAD Parser Error]`, error.message);
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
       return res.status(500).json({
         success: false,
-        error: `STEP 파일 분석 실패: ${error.message}`,
-        details: stderr
+        error: errData.error || '데몬 파서 서버에서 오류가 발생했습니다.'
       });
     }
-
-    const structureJsonPath = path.join(conversionDir, 'assembly_structure.json');
-    if (!fs.existsSync(structureJsonPath)) {
-      return res.status(500).json({
-        success: false,
-        error: '어셈블리 계층 분석 결과물(assembly_structure.json)이 생성되지 않았습니다.',
-        stdout: stdout
-      });
-    }
-
-    try {
-      const rawData = fs.readFileSync(structureJsonPath, 'utf8');
-      const assemblyData = JSON.parse(rawData);
-      
-      return res.json({
-        success: true,
-        conversionId: conversionId,
-        data: assemblyData
-      });
-    } catch (jsonErr) {
-      return res.status(500).json({
-        success: false,
-        error: `결과 파일 파싱 실패: ${jsonErr.message}`
-      });
-    }
-  });
+    
+    const resData = await response.json();
+    return res.json({
+      success: true,
+      conversionId: conversionId,
+      data: resData.data
+    });
+    
+  } catch (error) {
+    try { fs.unlinkSync(stepFilePath); } catch (e) {}
+    console.error(`[Upload Error]`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: `데몬 연동 분석 실패: ${error.message}`
+    });
+  }
 });
 
 /**
- * API Endpoint: Edit kinematics and Export robot to URDF / USD zip package
+ * API Endpoint: Edit kinematics and Export robot (Uses Daemon)
  */
-app.post('/api/export-robot', (req, res) => {
+app.post('/api/export-robot', async (req, res) => {
   const { conversionId, config } = req.body;
 
   if (!conversionId || !config) {
@@ -308,43 +344,42 @@ app.post('/api/export-robot', (req, res) => {
     return res.status(400).json({ success: false, error: '유효하지 않거나 만료된 세션(conversionId)입니다.' });
   }
 
-  const structureJsonPath = path.join(conversionDir, 'assembly_structure.json');
   try {
-    fs.writeFileSync(structureJsonPath, JSON.stringify(config, null, 2), 'utf8');
-  } catch (writeErr) {
-    return res.status(500).json({ success: false, error: `설정 저장 실패: ${writeErr.message}` });
-  }
-
-  const cmd = `python robot_exporter.py "${structureJsonPath}" "${conversionDir}"`;
-  console.log(`[Robot Exporter] Executing: ${cmd}`);
-
-  exec(cmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`[Robot Exporter Error]`, error.message);
+    const response = await fetch('http://localhost:8081/export', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        config: config,
+        output_dir: conversionDir
+      })
+    });
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
       return res.status(500).json({
         success: false,
-        error: `URDF/USD 변환 실패: ${error.message}`,
-        details: stderr
+        error: errData.error || '데몬 익스포터 서버에서 오류가 발생했습니다.'
       });
     }
-
-    const zipFilename = `${config.robot_name || 'AuraRobot'}_urdf_package.zip`;
-    const zipFilePath = path.join(scratchDir, 'conversions', zipFilename);
-
-    if (!fs.existsSync(zipFilePath)) {
-      return res.status(500).json({
-        success: false,
-        error: '최종 변환 결과물 ZIP 파일이 생성되지 않았습니다.',
-        stdout: stdout
-      });
-    }
-
+    
+    const resData = await response.json();
+    const zipFilename = resData.zip_filename;
+    
     return res.json({
       success: true,
       zipUrl: `/scratch/conversions/${zipFilename}?t=` + Date.now(),
       message: '로봇 모델 패키지(URDF & USD) 변환 성공!'
     });
-  });
+    
+  } catch (error) {
+    console.error(`[Export Error]`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: `데몬 연동 내보내기 실패: ${error.message}`
+    });
+  }
 });
 
 // Start Server
