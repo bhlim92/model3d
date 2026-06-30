@@ -1,0 +1,145 @@
+<Window x:Class="Aura3DRobotConverter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:hkt="http://helix-toolkit.org/wpf"
+        xmlns:local="clr-namespace:Aura3DRobotConverter"
+        mc:Ignorable="d"
+        Title="Aura3D AI Robot CAD Converter (STEP -> URDF/USD)" 
+        Height="768" Width="1200"
+        Background="#1A1A1E">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="380" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT SIDEBAR: Robot Editor -->
+        <Border Grid.Column="0" Background="#232328" BorderBrush="#2D2D35" BorderThickness="0,0,1,0" Padding="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /> <!-- Header -->
+                    <RowDefinition Height="Auto" /> <!-- Upload button -->
+                    <RowDefinition Height="*" />    <!-- TreeView -->
+                    <RowDefinition Height="Auto" /> <!-- Param Editor -->
+                    <RowDefinition Height="Auto" /> <!-- Export Button -->
+                </Grid.RowDefinitions>
+
+                <!-- Header Title -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,15">
+                    <TextBlock Text="AURA3D ROBOT CONVERTER" Foreground="#00f0ff" FontSize="16" FontWeight="Bold" />
+                    <TextBlock Text="Local .NET Desktop Kinematics Compiler" Foreground="#8F8F99" FontSize="11" Margin="0,2,0,0" />
+                </StackPanel>
+
+                <!-- Step Load Button -->
+                <Button Grid.Row="1" Content="STEP/STP 파일 열기..." Click="OnOpenStepFileClick" Height="40" Background="#32323C" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,0,15">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
+                <!-- Assembly Tree View -->
+                <GroupBox Grid.Row="2" Header="로봇 링크 및 관절 계층" Foreground="#E4E4E6" BorderBrush="#2D2D35" BorderThickness="1" Margin="0,0,0,15" Padding="5">
+                    <TreeView x:Name="RobotTreeView" Background="Transparent" BorderThickness="0" Foreground="#E4E4E6" SelectedItemChanged="OnRobotTreeViewSelectedItemChanged">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" Foreground="#E4E4E6" FontSize="12" Margin="2" />
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </GroupBox>
+
+                <!-- Joint Config Editor Panel (Initially Hidden/Collapsed) -->
+                <Border x:Name="JointEditorPanel" Grid.Row="3" Background="#1D1D21" BorderBrush="#2D2D35" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,15" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="JointEditorTitle" Text="관절 매개변수 설정" Foreground="#00f0ff" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,10" />
+
+                        <!-- Joint Type Selection -->
+                        <TextBlock Text="관절 형태 (Type):" Foreground="#8F8F99" FontSize="11" Margin="0,0,0,3" />
+                        <ComboBox x:Name="JointTypeComboBox" SelectionChanged="OnJointTypeChanged" Height="28" Margin="0,0,0,10" Background="#2D2D32" Foreground="White" BorderThickness="1" BorderBrush="#3D3D45">
+                            <ComboBoxItem Content="revolute (회전)" />
+                            <ComboBoxItem Content="continuous (무한회전)" />
+                            <ComboBoxItem Content="prismatic (이동)" />
+                            <ComboBoxItem Content="fixed (고정)" />
+                        </ComboBox>
+
+                        <!-- Rotation/Prismatic Axis XYZ -->
+                        <TextBlock Text="회전/이동축 (Axis XYZ):" Foreground="#8F8F99" FontSize="11" Margin="0,0,0,3" />
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                <TextBlock Text="X" Foreground="#FF5555" FontSize="9.5" HorizontalAlignment="Center"/>
+                                <TextBox x:Name="AxisXTextBox" TextChanged="OnAxisChanged" Height="24" Background="#2D2D32" Foreground="White" BorderThickness="1" BorderBrush="#3D3D45" TextAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="2,0,2,0">
+                                <TextBlock Text="Y" Foreground="#55FF55" FontSize="9.5" HorizontalAlignment="Center"/>
+                                <TextBox x:Name="AxisYTextBox" TextChanged="OnAxisChanged" Height="24" Background="#2D2D32" Foreground="White" BorderThickness="1" BorderBrush="#3D3D45" TextAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="4,0,0,0">
+                                <TextBlock Text="Z" Foreground="#5555FF" FontSize="9.5" HorizontalAlignment="Center"/>
+                                <TextBox x:Name="AxisZTextBox" TextChanged="OnAxisChanged" Height="24" Background="#2D2D32" Foreground="White" BorderThickness="1" BorderBrush="#3D3D45" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Angle Limits Lower/Upper (Not applicable for Fixed/Continuous) -->
+                        <Grid x:Name="LimitsGrid" Margin="0,0,0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                <TextBlock Text="최소각 (Lower Limit, Rad):" Foreground="#8F8F99" FontSize="11" Margin="0,0,0,3" />
+                                <TextBox x:Name="LimitLowerTextBox" TextChanged="OnLimitChanged" Height="26" Background="#2D2D32" Foreground="White" BorderThickness="1" BorderBrush="#3D3D45"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                <TextBlock Text="최대각 (Upper Limit, Rad):" Foreground="#8F8F99" FontSize="11" Margin="0,0,0,3" />
+                                <TextBox x:Name="LimitUpperTextBox" TextChanged="OnLimitChanged" Height="26" Background="#2D2D32" Foreground="White" BorderThickness="1" BorderBrush="#3D3D45"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Build Package button -->
+                <Button Grid.Row="4" Content="URDF &amp; USD 패키지 생성 및 저장..." Click="OnExportRobotClick" Height="45" Background="#008B99" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- RIGHT AREA: Viewport + Log Console -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="140" />
+            </Grid.RowDefinitions>
+
+            <hkt:HelixViewport3D x:Name="Viewport" Grid.Row="0" Background="#131317" BorderBrush="#2D2D35" BorderThickness="0,0,0,1"
+                                 ShowCoordinateSystem="True" ShowFrameRate="False" ZoomExtentsWhenLoaded="True">
+                <hkt:GridLinesVisual3D Width="20" Length="20" MinorDistance="0.25" MajorDistance="1" Normal="0,0,1" Thickness="0.015" />
+            </hkt:HelixViewport3D>
+
+            <!-- Log Console Output -->
+            <Grid Grid.Row="1" Background="#1A1A1F">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="실시간 변환 콘솔 로그" Foreground="#8F8F99" FontSize="11" FontWeight="SemiBold" Margin="12,12,12,6" />
+                <TextBox x:Name="LogTextBox" Grid.Row="1" IsReadOnly="True" Background="#101012" Foreground="#8EF2FF" BorderThickness="1" BorderBrush="#25252C" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" Margin="12,0,12,12" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
