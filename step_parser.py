@@ -3,7 +3,6 @@ import sys
 import json
 import uuid
 import cadquery as cq
-import trimesh
 import numpy as np
 
 def parse_transform(loc):
@@ -52,6 +51,41 @@ def matrix_to_xyz_rpy(matrix):
         
     return xyz, [float(roll), float(pitch), float(yaw)]
 
+from OCP.GProp import GProp_GProps
+from OCP.BRepGProp import BRepGProp
+
+def compute_inertial_properties(shape, density=2700.0):
+    """
+    Computes mass, center of mass, and geometric inertia tensor directly in memory 
+    using OpenCASCADE (OCP) C++ engine. Bypasses slow disk I/O.
+    """
+    props = GProp_GProps()
+    BRepGProp.VolumeProperties_s(shape.wrapped, props)
+    
+    # Geometric volume in mm^3
+    volume = props.Mass()
+    # Mass in kg (volume in m^3 * density in kg/m^3)
+    mass = max(volume * density / 1e9, 0.001)
+    
+    # Centre of Mass in mm -> scaled to meters
+    occ_com = props.CentreOfMass()
+    com = [occ_com.X() / 1000.0, occ_com.Y() / 1000.0, occ_com.Z() / 1000.0]
+    
+    # Matrix of Inertia (Geometric moment in mm^5) -> scaled to kg * m^2
+    # Conversion: mm^5 / 10^15 = m^5. Then multiplied by density (kg/m^3) to yield kg*m^2.
+    mat = props.MatrixOfInertia()
+    ixx = max(mat.Value(1, 1) * density / 1e15, 1e-5)
+    iyy = max(mat.Value(2, 2) * density / 1e15, 1e-5)
+    izz = max(mat.Value(3, 3) * density / 1e15, 1e-5)
+    ixy = -mat.Value(1, 2) * density / 1e15
+    ixz = -mat.Value(1, 3) * density / 1e15
+    iyz = -mat.Value(2, 3) * density / 1e15
+    
+    return mass, com, {
+        "ixx": ixx, "iyy": iyy, "izz": izz,
+        "ixy": ixy, "ixz": ixz, "iyz": iyz
+    }
+
 def process_node(assembly, output_mesh_dir, density=2700.0):
     """
     Recursively processes CadQuery assembly nodes to build tree hierarchy.
@@ -67,48 +101,28 @@ def process_node(assembly, output_mesh_dir, density=2700.0):
     # Handle physical parts with shape geometry
     shape = assembly.obj
     if shape:
-        # If wrapped inside a Workplane, extract the core Shape object
         if hasattr(shape, "val"):
             shape = shape.val()
             
         if shape:
-            # Export temporary STL for triangulation & inertial computing
+            # Export STL mesh for visualization (single disk write, no reads)
             mesh_filename = f"{node_id}.stl"
             mesh_filepath = os.path.join(output_mesh_dir, mesh_filename)
             
             try:
-                # Tessellate CAD B-Rep shape to STL mesh
                 cq.exporters.export(shape, mesh_filepath, cq.exporters.ExportTypes.STL)
                 
-                # Use trimesh to compute physical properties from triangulated mesh
-                mesh = trimesh.load(mesh_filepath)
-                if mesh.is_watertight:
-                    volume = mesh.volume
-                    mass = volume * density # kg
-                    com = mesh.center_mass.tolist() # CoM origin
-                    inertia_tensor = (mesh.moment_inertia * density / 1e9).tolist() # scaled to kg*m^2
-                else:
-                    # Fallback if triangulation has non-manifold edges
-                    volume = shape.Volume()
-                    mass = volume * density / 1e9 # convert mm^3 to m^3 representation
-                    com = [0.0, 0.0, 0.0]
-                    inertia_tensor = [[0.001, 0, 0], [0, 0.001, 0], [0, 0, 0.001]]
+                # Compute mass parameters directly in memory using OCP C++ engine
+                mass, com, inertia = compute_inertial_properties(shape, density)
                 
                 node_data["geometry"] = {
                     "mesh_path": f"meshes/{mesh_filename}",
-                    "mass": max(mass, 0.001),
+                    "mass": mass,
                     "center_of_mass": com,
-                    "inertia": {
-                        "ixx": max(inertia_tensor[0][0], 1e-5),
-                        "iyy": max(inertia_tensor[1][1], 1e-5),
-                        "izz": max(inertia_tensor[2][2], 1e-5),
-                        "ixy": inertia_tensor[0][1],
-                        "ixz": inertia_tensor[0][2],
-                        "iyz": inertia_tensor[1][2]
-                    }
+                    "inertia": inertia
                 }
             except Exception as e:
-                print(f"[Warning] Failed to export or parse mesh for {node_id}: {str(e)}", file=sys.stderr)
+                print(f"[Warning] Failed to process geometry for {node_id}: {str(e)}", file=sys.stderr)
             
     # Process child assembly joints and links
     for child in assembly.children:
