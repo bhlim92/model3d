@@ -82,6 +82,17 @@ def build_urdf(config, mesh_rel_dir, output_filepath):
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(xml_str)
 
+import re
+
+def sanitize_name(name):
+    """
+    Cleans names to be valid USD SdfPath elements (no digits at start, no hyphens).
+    """
+    sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+    if sanitized and sanitized[0].isdigit():
+        sanitized = 'r_' + sanitized
+    return sanitized
+
 def build_usd(config, output_filepath):
     """
     Generates Pixar USD/USDA format robot kinematics with USD Physics Schemas.
@@ -89,7 +100,7 @@ def build_usd(config, output_filepath):
     stage = Usd.Stage.CreateNew(output_filepath)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
     
-    robot_name = config.get("robot_name", "AuraRobot")
+    robot_name = sanitize_name(config.get("robot_name", "AuraRobot"))
     # Define root Articulation Root
     robot_path = f"/{robot_name}"
     robot_prim = UsdGeom.Xform.Define(stage, robot_path)
@@ -100,7 +111,8 @@ def build_usd(config, output_filepath):
     
     # 1. Define Xforms for Links and bind mass inertias
     for link in config.get("links", []):
-        link_path = f"{robot_path}/{link['name']}"
+        link_name = sanitize_name(link["name"])
+        link_path = f"{robot_path}/{link_name}"
         link_xform = UsdGeom.Xform.Define(stage, link_path)
         
         # Set physics mass API
@@ -129,12 +141,12 @@ def build_usd(config, output_filepath):
 
     # 2. Define Physics Joint relations
     for joint in config.get("joints", []):
-        joint_name = joint["name"]
+        joint_name = sanitize_name(joint["name"])
         joint_path = f"{robot_path}/{joint_name}"
         joint_type = joint["type"]
         
-        parent_path = f"{robot_path}/{joint['parent']}"
-        child_path = f"{robot_path}/{joint['child']}"
+        parent_path = f"{robot_path}/{sanitize_name(joint['parent'])}"
+        child_path = f"{robot_path}/{sanitize_name(joint['child'])}"
         
         # Deconstruct origin offsets
         origin = joint.get("origin", {})
