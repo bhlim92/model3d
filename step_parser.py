@@ -65,28 +65,34 @@ def process_node(assembly, output_mesh_dir, density=2700.0):
     }
     
     # Handle physical parts with shape geometry
-    if assembly.shape:
-        # Export temporary STL for triangulation & inertial computing
-        mesh_filename = f"{node_id}.stl"
-        mesh_filepath = os.path.join(output_mesh_dir, mesh_filename)
-        
-        try:
-            # Tessellate CAD B-Rep shape to STL mesh
-            cq.exporters.export(assembly.shape, mesh_filepath, cq.exporters.ExportTypes.STL)
+    shape = assembly.obj
+    if shape:
+        # If wrapped inside a Workplane, extract the core Shape object
+        if hasattr(shape, "val"):
+            shape = shape.val()
             
-            # Use trimesh to compute physical properties from triangulated mesh
-            mesh = trimesh.load(mesh_filepath)
-            if mesh.is_watertight:
-                volume = mesh.volume
-                mass = volume * density # kg
-                com = mesh.center_mass.tolist() # CoM origin
-                inertia_tensor = (mesh.moment_inertia * density / 1e9).tolist() # scaled to kg*m^2
-            else:
-                # Fallback if triangulation has non-manifold edges
-                volume = assembly.shape.Volume()
-                mass = volume * density / 1e9 # convert mm^3 to m^3 representation
-                com = [0.0, 0.0, 0.0]
-                inertia_tensor = [[0.001, 0, 0], [0, 0.001, 0], [0, 0, 0.001]]
+        if shape:
+            # Export temporary STL for triangulation & inertial computing
+            mesh_filename = f"{node_id}.stl"
+            mesh_filepath = os.path.join(output_mesh_dir, mesh_filename)
+            
+            try:
+                # Tessellate CAD B-Rep shape to STL mesh
+                cq.exporters.export(shape, mesh_filepath, cq.exporters.ExportTypes.STL)
+                
+                # Use trimesh to compute physical properties from triangulated mesh
+                mesh = trimesh.load(mesh_filepath)
+                if mesh.is_watertight:
+                    volume = mesh.volume
+                    mass = volume * density # kg
+                    com = mesh.center_mass.tolist() # CoM origin
+                    inertia_tensor = (mesh.moment_inertia * density / 1e9).tolist() # scaled to kg*m^2
+                else:
+                    # Fallback if triangulation has non-manifold edges
+                    volume = shape.Volume()
+                    mass = volume * density / 1e9 # convert mm^3 to m^3 representation
+                    com = [0.0, 0.0, 0.0]
+                    inertia_tensor = [[0.001, 0, 0], [0, 0.001, 0], [0, 0, 0.001]]
                 
             node_data["geometry"] = {
                 "mesh_path": f"meshes/{mesh_filename}",
