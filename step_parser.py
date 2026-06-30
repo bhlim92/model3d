@@ -131,12 +131,25 @@ def process_node(assembly, output_mesh_dir, density=2700.0):
         
     return node_data
 
-def flatten_and_create_joints(node, parent_name=None, links=[], joints=[]):
+def flatten_and_create_joints(node, parent_name=None, accum_transform=None, links=None, joints=None):
     """
-    Flattens the assembly tree structure and infers joint links coordinates.
+    Flattens the assembly tree structure and accumulates relative transforms.
+    Converts joint coordinates from mm to meters.
     """
+    if links is None: links = []
+    if joints is None: joints = []
+    
+    # Current relative transform matrix
+    curr_t = np.array(node["transform"])
+    
+    if accum_transform is None:
+        accum_t = curr_t
+    else:
+        # Multiply parent accumulated transform with current relative transform
+        accum_t = np.dot(accum_transform, curr_t)
+        
     link_name = node["name"]
-    xyz, rpy = matrix_to_xyz_rpy(node["transform"])
+    xyz, rpy = matrix_to_xyz_rpy(accum_t)
     
     link_entry = {
         "name": link_name,
@@ -161,7 +174,8 @@ def flatten_and_create_joints(node, parent_name=None, links=[], joints=[]):
                 "parent": parent_name,
                 "child": link_name,
                 "origin": {
-                    "xyz": xyz,
+                    # Convert origin from mm (CAD standard) to meters (URDF/USD/Simulation standard)
+                    "xyz": [xyz[0] / 1000.0, xyz[1] / 1000.0, xyz[2] / 1000.0],
                     "rpy": rpy
                 },
                 "axis": [0.0, 0.0, 1.0], # default Z-axis rotation
@@ -175,12 +189,15 @@ def flatten_and_create_joints(node, parent_name=None, links=[], joints=[]):
             joints.append(joint_entry)
             
         current_parent = link_name
+        # Once a physical link frame is established, next children transforms will be relative to it
+        next_accum = np.eye(4)
     else:
-        # Dummy group links pass down their parent relationship
         current_parent = parent_name
+        # Skip dummy group and pass accumulated transform down
+        next_accum = accum_t
         
     for child in node["children"]:
-        flatten_and_create_joints(child, current_parent, links, joints)
+        flatten_and_create_joints(child, current_parent, next_accum, links, joints)
         
     return links, joints
 

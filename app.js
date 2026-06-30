@@ -1786,7 +1786,7 @@ function highlightJointIn3D(joint) {
   const origin = joint.origin.xyz;
   const axis = joint.axis;
   
-  const pos = new THREE.Vector3(origin[0] / 1000.0, origin[1] / 1000.0, origin[2] / 1000.0);
+  const pos = new THREE.Vector3(origin[0], origin[1], origin[2]);
   const dir = new THREE.Vector3(axis[0], axis[1], axis[2]).normalize();
   
   const length = 0.5;
