@@ -107,7 +107,7 @@ namespace Aura3DRobotConverter
             }
         }
 
-        private void OnImportModelClick(object sender, RoutedEventArgs e)
+        private async void OnImportModelClick(object sender, RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog
             {
@@ -121,39 +121,48 @@ namespace Aura3DRobotConverter
                 string extension = Path.GetExtension(path).ToLower();
                 string directory = Path.GetDirectoryName(path) ?? string.Empty;
                 
-                Log($"[Importer] Loading model specification: {path}");
+                Log($"[Importer] 파일 로드 시작: {path}");
 
                 try
                 {
-                    RobotConfig? config = null;
-                    if (extension == ".urdf")
+                    Log("[Importer] 백그라운드 스레드에서 파일 파싱 수행 중...");
+                    RobotConfig? config = await Task.Run(() =>
                     {
-                        config = CsharpStepParser.ParseUrdfFile(path);
-                    }
-                    else if (extension == ".usda")
-                    {
-                        config = CsharpStepParser.ParseUsdaFile(path);
-                    }
+                        if (extension == ".urdf")
+                        {
+                            return CsharpStepParser.ParseUrdfFile(path);
+                        }
+                        else if (extension == ".usda")
+                        {
+                            return CsharpStepParser.ParseUsdaFile(path);
+                        }
+                        return null;
+                    });
 
                     if (config != null)
                     {
                         _config = config;
                         _sessionDir = directory;
 
-                        Log($"[Importer] Success! Model Name: {_config.RobotName}. Root Link: {_config.RootLink}");
-                        Log($"[Importer] Total Links: {_config.Links.Count}, Total Joints: {_config.Joints.Count}");
+                        Log($"[Importer] 파싱 완료! 모델명: {_config.RobotName}. 루트 링크: {_config.RootLink}");
+                        Log($"[Importer] 링크 개수: {_config.Links.Count}, 관절 개수: {_config.Joints.Count}");
 
+                        Log("[Importer] UI 트리 구조 갱신 중...");
                         BuildAssemblyTreeUI();
+
+                        Log("[Importer] 3D 화면에 링크 STL 메쉬 배치 및 렌더링 중...");
                         LoadRobotMeshesToViewer();
+                        
+                        Log("[Importer] 사양서 가져오기 완료!");
                     }
                     else
                     {
-                        throw new Exception("Import result is empty.");
+                        throw new Exception("불러온 사양서 데이터가 존재하지 않습니다.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log($"[Error] Importer failed: {ex.Message}");
+                    Log($"[Error] 가져오기 실패: {ex.Message}");
                     MessageBox.Show($"모델 파일을 가져오는 데 실패했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
