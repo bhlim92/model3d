@@ -142,12 +142,26 @@
                 <RowDefinition Height="140" />
             </Grid.RowDefinitions>
 
-            <hkt:HelixViewport3D x:Name="Viewport" Grid.Row="0" Background="#ECECEC" BorderBrush="#D5D5D5" BorderThickness="0,0,0,1"
-                                 ShowCoordinateSystem="True" ShowFrameRate="False" ZoomExtentsWhenLoaded="True">
-                <hkt:DefaultLights />
-                <!-- Darker grid lines to contrast with bright background -->
-                <hkt:GridLinesVisual3D Width="20" Length="20" MinorDistance="0.25" MajorDistance="1" Normal="0,0,1" Thickness="0.015" Fill="#B0B0B0" />
-            </hkt:HelixViewport3D>
+            <TabControl Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="#D5D5D5" Background="#F3F3F3" Margin="0,0,0,0">
+                <TabControl.Resources>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Padding" Value="15,8"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Foreground" Value="#0067C0"/>
+                    </Style>
+                </TabControl.Resources>
+                
+                <TabItem Header="3D Model Viewer">
+                    <hkt:HelixViewport3D x:Name="Viewport" Background="#ECECEC" ShowCoordinateSystem="True" ShowFrameRate="False" ZoomExtentsWhenLoaded="True">
+                        <hkt:DefaultLights />
+                        <hkt:GridLinesVisual3D Width="20" Length="20" MinorDistance="0.25" MajorDistance="1" Normal="0,0,1" Thickness="0.015" Fill="#B0B0B0" />
+                    </hkt:HelixViewport3D>
+                </TabItem>
+
+                <TabItem Header="Source Code Viewer (URDF/USD)">
+                    <TextBox x:Name="SourceCodeTextBox" IsReadOnly="True" FontFamily="Consolas" FontSize="12.5" Background="#1E1E1E" Foreground="#D4D4D4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" BorderThickness="0" Padding="15"/>
+                </TabItem>
+            </TabControl>
 
             <!-- Log Console Output -->
             <Grid Grid.Row="1" Background="#EAEAEA">

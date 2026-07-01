@@ -268,21 +268,80 @@ namespace Aura3DRobotConverter.Services
                 }
 
                 string meshPath = string.Empty;
-                var xMesh = xLink.Element("visual")?.Element("geometry")?.Element("mesh");
-                if (xMesh != null)
+                string? primitiveType = null;
+                double[]? primitiveParams = null;
+                float[]? colorRgba = null;
+
+                var xVisual = xLink.Element("visual");
+                if (xVisual != null)
                 {
-                    string filename = xMesh.Attribute("filename")?.Value ?? string.Empty;
-                    if (filename.StartsWith("package://"))
+                    var xGeom = xVisual.Element("geometry");
+                    if (xGeom != null)
                     {
-                        int slashIndex = filename.IndexOf('/', 10);
-                        if (slashIndex != -1)
+                        var xMesh = xGeom.Element("mesh");
+                        if (xMesh != null)
                         {
-                            meshPath = filename.Substring(slashIndex + 1);
+                            string filename = xMesh.Attribute("filename")?.Value ?? string.Empty;
+                            if (filename.StartsWith("package://"))
+                            {
+                                int slashIndex = filename.IndexOf('/', 10);
+                                if (slashIndex != -1) meshPath = filename.Substring(slashIndex + 1);
+                            }
+                            else
+                            {
+                                meshPath = filename;
+                            }
+                        }
+                        else if (xGeom.Element("box") != null)
+                        {
+                            primitiveType = "box";
+                            var sizeStr = xGeom.Element("box")?.Attribute("size")?.Value;
+                            if (sizeStr != null) {
+                                var tokens = sizeStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (tokens.Length >= 3) {
+                                    primitiveParams = new double[3];
+                                    double.TryParse(tokens[0], out primitiveParams[0]);
+                                    double.TryParse(tokens[1], out primitiveParams[1]);
+                                    double.TryParse(tokens[2], out primitiveParams[2]);
+                                }
+                            }
+                        }
+                        else if (xGeom.Element("cylinder") != null)
+                        {
+                            primitiveType = "cylinder";
+                            var cyl = xGeom.Element("cylinder");
+                            double radius = 0, length = 0;
+                            double.TryParse(cyl?.Attribute("radius")?.Value, out radius);
+                            double.TryParse(cyl?.Attribute("length")?.Value, out length);
+                            primitiveParams = new double[] { radius, length };
+                        }
+                        else if (xGeom.Element("sphere") != null)
+                        {
+                            primitiveType = "sphere";
+                            double radius = 0;
+                            double.TryParse(xGeom.Element("sphere")?.Attribute("radius")?.Value, out radius);
+                            primitiveParams = new double[] { radius };
                         }
                     }
-                    else
+
+                    var xMat = xVisual.Element("material");
+                    if (xMat != null)
                     {
-                        meshPath = filename;
+                        var xColor = xMat.Element("color");
+                        if (xColor != null)
+                        {
+                            string? rgbaStr = xColor.Attribute("rgba")?.Value;
+                            if (rgbaStr != null) {
+                                var tokens = rgbaStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (tokens.Length >= 4) {
+                                    colorRgba = new float[4];
+                                    float.TryParse(tokens[0], out colorRgba[0]);
+                                    float.TryParse(tokens[1], out colorRgba[1]);
+                                    float.TryParse(tokens[2], out colorRgba[2]);
+                                    float.TryParse(tokens[3], out colorRgba[3]);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -292,7 +351,10 @@ namespace Aura3DRobotConverter.Services
                     MeshPath = meshPath,
                     Mass = mass,
                     CenterOfMass = com,
-                    Inertia = inertia
+                    Inertia = inertia,
+                    PrimitiveType = primitiveType,
+                    PrimitiveParams = primitiveParams,
+                    ColorRgba = colorRgba
                 });
             }
 

@@ -39,5 +39,14 @@ namespace Aura3DRobotConverter.Models
 
         [JsonPropertyName("inertia")]
         public Inertia Inertia { get; set; } = new Inertia();
+
+        [JsonPropertyName("primitive_type")]
+        public string? PrimitiveType { get; set; }
+
+        [JsonPropertyName("primitive_params")]
+        public double[]? PrimitiveParams { get; set; }
+
+        [JsonPropertyName("color_rgba")]
+        public float[]? ColorRgba { get; set; }
     }
 }

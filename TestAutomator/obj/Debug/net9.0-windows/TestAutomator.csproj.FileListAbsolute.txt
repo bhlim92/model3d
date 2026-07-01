@@ -1,0 +1,15 @@
+C:\Users\samsung\proj\model3d\TestAutomator\bin\Debug\net9.0-windows\TestAutomator.exe
+C:\Users\samsung\proj\model3d\TestAutomator\bin\Debug\net9.0-windows\TestAutomator.deps.json
+C:\Users\samsung\proj\model3d\TestAutomator\bin\Debug\net9.0-windows\TestAutomator.runtimeconfig.json
+C:\Users\samsung\proj\model3d\TestAutomator\bin\Debug\net9.0-windows\TestAutomator.dll
+C:\Users\samsung\proj\model3d\TestAutomator\bin\Debug\net9.0-windows\TestAutomator.pdb
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.AssemblyInfoInputs.cache
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.AssemblyInfo.cs
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.csproj.CoreCompileInputs.cache
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.sourcelink.json
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.dll
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\refint\TestAutomator.dll
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.pdb
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\TestAutomator.genruntimeconfig.cache
+C:\Users\samsung\proj\model3d\TestAutomator\obj\Debug\net9.0-windows\ref\TestAutomator.dll

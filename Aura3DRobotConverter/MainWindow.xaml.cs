@@ -51,6 +51,22 @@ namespace Aura3DRobotConverter
             
             Log($"[System] Workspace root resolved to: {_workspacePath}");
             Log("[System] Pure C# .NET STEP-to-URDF/USD Compiler Ready (No Python dependencies).");
+            
+            this.Loaded += MainWindow_Loaded;
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            var args = Environment.GetCommandLineArgs();
+            if (args.Length > 1)
+            {
+                string file = args[1];
+                if (File.Exists(file))
+                {
+                    Log($"[System] CLI 파일 로드 시도: {file}");
+                    await LoadModelFromFileAsync(file);
+                }
+            }
         }
 
         private void Log(string message)
@@ -68,104 +84,124 @@ namespace Aura3DRobotConverter
 
         private async void OnOpenStepFileClick(object sender, RoutedEventArgs e)
         {
-            string stepPath = ShowFileDialogSafe(
-                "STEP CAD Files (*.step;*.stp)|*.step;*.stp",
-                "STEP 파일 선택"
-            );
-
-            if (!string.IsNullOrEmpty(stepPath))
+            try
             {
-                Log($"[Parser] Loading STEP file: {stepPath}");
+                string filter = "STEP Files (*.step;*.stp)|*.step;*.stp|All Files (*.*)|*.*";
+                string selectedFile = ShowFileDialogSafe(filter, "STEP 파일 선택");
 
-                // Setup local scratch conversion session directory
-                string scratchRoot = Path.Combine(_workspacePath, "scratch");
-                string sessionName = $"conv_{DateTime.Now.Ticks}_{Guid.NewGuid().ToString().Substring(0, 5)}";
-                _sessionDir = Path.Combine(scratchRoot, "conversions", sessionName);
-                Directory.CreateDirectory(_sessionDir);
-
-                try
+                if (!string.IsNullOrEmpty(selectedFile))
                 {
-                    Log("[Parser] Analyzing STEP file structure using native C# AnyCAD kernel...");
-                    var config = await Task.Run(() => CsharpStepParser.ParseStepFile(stepPath, _sessionDir));
-
-                    if (config != null)
-                    {
-                        _config = config;
-                        Log($"[Parser] Success! Robot Name: {_config.RobotName}. Base Link: {_config.RootLink}");
-                        Log($"[Parser] Total Links: {_config.Links.Count}, Total Joints: {_config.Joints.Count}");
-
-                        BuildAssemblyTreeUI();
-                        LoadRobotMeshesToViewer();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log($"[Error] Conversion failed: {ex.Message}");
-                    MessageBox.Show($"CAD 분석 오류가 발생했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private void OnImportModelClick(object sender, RoutedEventArgs e)
-        {
-            Dispatcher.Invoke(async () =>
-            {
-                string path = ShowFileDialogSafe(
-                    "URDF Spec Files (*.urdf)|*.urdf|USD Spec Files (*.usda)|*.usda|All Files (*.*)|*.*",
-                    "로봇 사양서 파일 가져오기"
-                );
-
-                if (!string.IsNullOrEmpty(path))
-                {
-                    string extension = Path.GetExtension(path).ToLower();
-                    string directory = Path.GetDirectoryName(path) ?? string.Empty;
+                    Log($"[STEP] 변환 시작: {selectedFile}");
                     
-                    Log($"[Importer] 파일 로드 시작: {path}");
+                    try {
+                        string stepContent = await File.ReadAllTextAsync(selectedFile);
+                        if (stepContent.Length > 2000000) stepContent = stepContent.Substring(0, 2000000) + "\n\n... (파일 용량이 너무 커서 앞부분만 표시합니다) ...";
+                        SourceCodeTextBox.Text = stepContent;
+                    } catch { SourceCodeTextBox.Text = "파일을 텍스트로 읽을 수 없습니다."; }
+
+                    // Setup local scratch conversion session directory
+                    string scratchRoot = Path.Combine(_workspacePath, "scratch");
+                    string sessionName = $"conv_{DateTime.Now.Ticks}_{Guid.NewGuid().ToString().Substring(0, 5)}";
+                    _sessionDir = Path.Combine(scratchRoot, "conversions", sessionName);
+                    Directory.CreateDirectory(_sessionDir);
 
                     try
                     {
-                        Log("[Importer] 백그라운드 스레드에서 파일 파싱 수행 중...");
-                        RobotConfig? config = await Task.Run(() =>
-                        {
-                            if (extension == ".urdf")
-                            {
-                                return CsharpStepParser.ParseUrdfFile(path);
-                            }
-                            else if (extension == ".usda")
-                            {
-                                return CsharpStepParser.ParseUsdaFile(path);
-                            }
-                            return null;
-                        });
+                        Log("[Parser] Analyzing STEP file structure using native C# AnyCAD kernel...");
+                        var config = await Task.Run(() => CsharpStepParser.ParseStepFile(selectedFile, _sessionDir));
 
                         if (config != null)
                         {
                             _config = config;
-                            _sessionDir = directory;
+                            Log($"[Parser] Success! Robot Name: {_config.RobotName}. Base Link: {_config.RootLink}");
+                            Log($"[Parser] Total Links: {_config.Links.Count}, Total Joints: {_config.Joints.Count}");
 
-                            Log($"[Importer] 파싱 완료! 모델명: {_config.RobotName}. 루트 링크: {_config.RootLink}");
-                            Log($"[Importer] 링크 개수: {_config.Links.Count}, 관절 개수: {_config.Joints.Count}");
-
-                            Log("[Importer] UI 트리 구조 갱신 중...");
                             BuildAssemblyTreeUI();
-
-                            Log("[Importer] 3D 화면에 링크 STL 메쉬 배치 및 렌더링 중...");
                             LoadRobotMeshesToViewer();
-                            
-                            Log("[Importer] 사양서 가져오기 완료!");
-                        }
-                        else
-                        {
-                            throw new Exception("불러온 사양서 데이터가 존재하지 않습니다.");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Log($"[Error] 가져오기 실패: {ex.Message}");
-                        MessageBox.Show($"모델 파일을 가져오는 데 실패했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Log($"[Error] Conversion failed: {ex.Message}");
+                        System.Windows.MessageBox.Show($"CAD 분석 오류가 발생했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Log($"[Error] Unexpected error: {ex.Message}");
+            }
+        }
+
+        private async void OnImportModelClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string filter = "Supported Robot Files|*.urdf;*.usd;*.usda|URDF Files (*.urdf)|*.urdf|USD Files (*.usd;*.usda)|*.usd;*.usda|All Files (*.*)|*.*";
+                string selectedFile = ShowFileDialogSafe(filter, "로봇 사양서 파일 가져오기");
+
+                if (!string.IsNullOrEmpty(selectedFile))
+                {
+                    await LoadModelFromFileAsync(selectedFile);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"[Error] Unexpected error: {ex.Message}");
+            }
+        }
+
+        public async Task LoadModelFromFileAsync(string selectedFile)
+        {
+            Log($"[Import] 파일 로드 시도: {selectedFile}");
+            
+            try {
+                string fileContent = await File.ReadAllTextAsync(selectedFile);
+                if (fileContent.Length > 2000000) fileContent = fileContent.Substring(0, 2000000) + "\n\n... (파일 용량이 너무 커서 앞부분만 표시합니다) ...";
+                SourceCodeTextBox.Text = fileContent;
+            } catch { SourceCodeTextBox.Text = "파일을 텍스트로 읽을 수 없습니다."; }
+
+            string extension = Path.GetExtension(selectedFile).ToLower();
+            string directory = Path.GetDirectoryName(selectedFile) ?? string.Empty;
+            
+            Log($"[Importer] 파일 로드 시작: {selectedFile}");
+
+            try
+            {
+                Log("[Importer] 백그라운드 스레드에서 파일 파싱 수행 중...");
+                RobotConfig? config = await Task.Run(() =>
+                {
+                    if (extension == ".urdf") return CsharpStepParser.ParseUrdfFile(selectedFile);
+                    else if (extension == ".usda") return CsharpStepParser.ParseUsdaFile(selectedFile);
+                    return null;
+                });
+
+                if (config != null)
+                {
+                    _config = config;
+                    _sessionDir = directory;
+
+                    Log($"[Importer] 파싱 완료! 모델명: {_config.RobotName}. 루트 링크: {_config.RootLink}");
+                    Log($"[Importer] 링크 개수: {_config.Links.Count}, 관절 개수: {_config.Joints.Count}");
+
+                    Log("[Importer] UI 트리 구조 갱신 중...");
+                    BuildAssemblyTreeUI();
+
+                    Log("[Importer] 3D 화면에 링크 메쉬/도형 배치 및 렌더링 중...");
+                    LoadRobotMeshesToViewer();
+                    
+                    Log("[Importer] 사양서 가져오기 완료!");
+                }
+                else
+                {
+                    throw new Exception("불러온 사양서 데이터가 존재하지 않습니다.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"[Error] 가져오기 실패: {ex.Message}");
+                System.Windows.MessageBox.Show($"모델 파일을 가져오는 데 실패했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void BuildAssemblyTreeUI()
@@ -250,36 +286,82 @@ namespace Aura3DRobotConverter
 
             foreach (var link in _config.Links)
             {
-                if (string.IsNullOrEmpty(link.MeshPath)) continue;
-
-                string absoluteMeshPath = Path.Combine(_sessionDir, link.MeshPath);
-                if (!File.Exists(absoluteMeshPath))
+                Model3D? model = null;
+                Transform3D? baseScaleTransform = null;
+                
+                if (!string.IsNullOrEmpty(link.PrimitiveType) && link.PrimitiveParams != null)
                 {
-                    Log($"[Warning] Mesh file missing: {absoluteMeshPath}");
-                    continue;
+                    MeshGeometry3D? primitiveMesh = null;
+                    
+                    if (link.PrimitiveType == "box" && link.PrimitiveParams.Length >= 3)
+                    {
+                        primitiveMesh = BuildBox(link.PrimitiveParams[0], link.PrimitiveParams[1], link.PrimitiveParams[2]);
+                    }
+                    else if (link.PrimitiveType == "cylinder" && link.PrimitiveParams.Length >= 2)
+                    {
+                        primitiveMesh = BuildCylinder(link.PrimitiveParams[0], link.PrimitiveParams[1]);
+                    }
+                    else if (link.PrimitiveType == "sphere" && link.PrimitiveParams.Length >= 1)
+                    {
+                        // Simplified sphere using box for now, as exact sphere math is bulky
+                        double r = link.PrimitiveParams[0];
+                        primitiveMesh = BuildBox(r*2, r*2, r*2);
+                    }
+                    
+                    if (primitiveMesh != null)
+                    {
+                        var material = Materials.Gray;
+                        if (link.ColorRgba != null && link.ColorRgba.Length >= 3)
+                        {
+                            byte r = (byte)(link.ColorRgba[0] * 255);
+                            byte g = (byte)(link.ColorRgba[1] * 255);
+                            byte b = (byte)(link.ColorRgba[2] * 255);
+                            byte a = link.ColorRgba.Length >= 4 ? (byte)(link.ColorRgba[3] * 255) : (byte)255;
+                            var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(a, r, g, b));
+                            material = new DiffuseMaterial(brush);
+                        }
+                        
+                        model = new GeometryModel3D(primitiveMesh, material);
+                        baseScaleTransform = new ScaleTransform3D(1, 1, 1);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(link.MeshPath))
+                {
+                    string absoluteMeshPath = Path.Combine(_sessionDir, link.MeshPath);
+                    if (!File.Exists(absoluteMeshPath))
+                    {
+                        Log($"[Warning] Mesh file missing: {absoluteMeshPath}");
+                        continue;
+                    }
+
+                    string ext = Path.GetExtension(absoluteMeshPath).ToLower();
+                    if (ext != ".stl" && ext != ".obj" && ext != ".dae" && ext != ".3ds")
+                    {
+                        Log($"[Warning] 3D 뷰어가 지원하지 않는 시각 메쉬 형식입니다: {ext} ({link.Name})");
+                        continue;
+                    }
+
+                    try
+                    {
+                        var importer = new ModelImporter();
+                        model = importer.Load(absoluteMeshPath);
+                        baseScaleTransform = new ScaleTransform3D(0.001, 0.001, 0.001);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"[Warning] Failed to load external mesh {link.Name}: {ex.Message}");
+                    }
                 }
 
-                // Protect native Assimp importer from unsupported formats (Access Violation / Hard Crash)
-                string ext = Path.GetExtension(absoluteMeshPath).ToLower();
-                if (ext != ".stl" && ext != ".obj" && ext != ".dae" && ext != ".3ds")
-                {
-                    Log($"[Warning] 3D 뷰어가 지원하지 않는 시각 메쉬 형식입니다: {ext} ({link.Name})");
-                    continue;
-                }
+                if (model == null) continue;
 
                 try
                 {
-                    var importer = new ModelImporter();
-                    var model = importer.Load(absoluteMeshPath);
-                    
                     var visual = new ModelVisual3D { Content = model };
-                    
-                    // Create scaling transform (convert STL mm to world meters)
-                    var scaleTransform = new ScaleTransform3D(0.001, 0.001, 0.001);
                     var linkTransform = GetLinkTransform(link.Name);
                     
                     var combinedTransform = new Transform3DGroup();
-                    combinedTransform.Children.Add(scaleTransform);
+                    if (baseScaleTransform != null) combinedTransform.Children.Add(baseScaleTransform);
                     combinedTransform.Children.Add(linkTransform);
                     
                     visual.Transform = combinedTransform;
@@ -291,7 +373,7 @@ namespace Aura3DRobotConverter
                 }
                 catch (Exception ex)
                 {
-                    Log($"[Warning] Failed to render mesh {link.Name}: {ex.Message}");
+                    Log($"[Warning] Failed to apply transform to mesh {link.Name}: {ex.Message}");
                 }
             }
 
@@ -496,7 +578,7 @@ namespace Aura3DRobotConverter
                 Point1 = jointGlobalPoint,
                 Point2 = jointGlobalPoint + (globalAxis * 0.4),
                 Diameter = 0.035,
-                Fill = Brushes.Orange
+                Fill = System.Windows.Media.Brushes.Orange
             };
 
             Viewport.Children.Add(_currentJointHelper);
@@ -522,7 +604,7 @@ namespace Aura3DRobotConverter
             }
             else
             {
-                _originalMaterials[linkName] = new DiffuseMaterial(Brushes.LightGray);
+                _originalMaterials[linkName] = new DiffuseMaterial(System.Windows.Media.Brushes.LightGray);
             }
         }
 
@@ -531,7 +613,7 @@ namespace Aura3DRobotConverter
             // Reset previous highlight
             if (!string.IsNullOrEmpty(_highlightedLink) && _linkVisualMap.TryGetValue(_highlightedLink, out var oldVisual))
             {
-                Material origMat = _originalMaterials.TryGetValue(_highlightedLink, out var mat) ? mat : new DiffuseMaterial(Brushes.LightGray);
+                Material origMat = _originalMaterials.TryGetValue(_highlightedLink, out var mat) ? mat : new DiffuseMaterial(System.Windows.Media.Brushes.LightGray);
                 SetLinkMaterial(oldVisual, origMat);
             }
 
@@ -540,7 +622,7 @@ namespace Aura3DRobotConverter
             if (!string.IsNullOrEmpty(_highlightedLink) && _linkVisualMap.TryGetValue(_highlightedLink, out var newVisual))
             {
                 // Highlight material: vibrant Orange/Gold
-                var highlightMat = new DiffuseMaterial(new SolidColorBrush(Color.FromRgb(255, 140, 0)));
+                var highlightMat = new DiffuseMaterial(new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)));
                 SetLinkMaterial(newVisual, highlightMat);
             }
         }
@@ -607,11 +689,11 @@ namespace Aura3DRobotConverter
         {
             if (_config == null || string.IsNullOrEmpty(_sessionDir))
             {
-                MessageBox.Show("먼저 STEP 파일을 불러와 주십시오.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("먼저 STEP 파일을 불러와 주십시오.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            var saveFileDialog = new SaveFileDialog
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
             {
                 Filter = "ZIP File (*.zip)|*.zip",
                 Title = "로봇 패키지(URDF & USD) ZIP 파일 저장",
@@ -635,7 +717,7 @@ namespace Aura3DRobotConverter
                         }
                         File.Copy(tempZipPath, saveFileDialog.FileName);
                         Log($"[Exporter] Success! Zip package copied to: {saveFileDialog.FileName}");
-                        MessageBox.Show("로봇 모델 패키지(URDF & USD) 내보내기에 성공했습니다!", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
+                        System.Windows.MessageBox.Show("로봇 모델 패키지(URDF & USD) 내보내기에 성공했습니다!", "완료", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
@@ -645,9 +727,63 @@ namespace Aura3DRobotConverter
                 catch (Exception ex)
                 {
                     Log($"[Error] Export failed: {ex.Message}");
-                    MessageBox.Show($"내보내기 도중 오류가 발생했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show($"내보내기 도중 오류가 발생했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+        // ==========================================
+        // Dynamic Primitive Geometry Generation
+        // ==========================================
+        private MeshGeometry3D BuildBox(double x, double y, double z)
+        {
+            var mesh = new MeshGeometry3D();
+            double hx = x / 2, hy = y / 2, hz = z / 2;
+            Point3D[] p = new Point3D[8] {
+                new Point3D(-hx, -hy,  hz), new Point3D( hx, -hy,  hz),
+                new Point3D( hx,  hy,  hz), new Point3D(-hx,  hy,  hz),
+                new Point3D(-hx, -hy, -hz), new Point3D( hx, -hy, -hz),
+                new Point3D( hx,  hy, -hz), new Point3D(-hx,  hy, -hz)
+            };
+            foreach(var pt in p) mesh.Positions.Add(pt);
+            int[] indices = {
+                0,1,2, 0,2,3, 4,7,6, 4,6,5, 0,3,7, 0,7,4,
+                1,5,6, 1,6,2, 3,2,6, 3,6,7, 0,4,5, 0,5,1
+            };
+            foreach(int i in indices) mesh.TriangleIndices.Add(i);
+            return mesh;
+        }
+
+        private MeshGeometry3D BuildCylinder(double radius, double length)
+        {
+            var mesh = new MeshGeometry3D();
+            int segments = 16;
+            double halfL = length / 2;
+            for (int i = 0; i < segments; i++)
+            {
+                double a = 2.0 * Math.PI * i / segments;
+                double x = radius * Math.Cos(a);
+                double y = radius * Math.Sin(a);
+                mesh.Positions.Add(new Point3D(x, y, halfL));
+                mesh.Positions.Add(new Point3D(x, y, -halfL));
+            }
+            mesh.Positions.Add(new Point3D(0, 0, halfL));
+            mesh.Positions.Add(new Point3D(0, 0, -halfL));
+            
+            int topC = segments * 2;
+            int botC = segments * 2 + 1;
+            
+            for (int i = 0; i < segments; i++)
+            {
+                int next = (i + 1) % segments;
+                int iTop = i * 2, iBot = i * 2 + 1;
+                int nTop = next * 2, nBot = next * 2 + 1;
+                
+                mesh.TriangleIndices.Add(iTop); mesh.TriangleIndices.Add(iBot); mesh.TriangleIndices.Add(nBot);
+                mesh.TriangleIndices.Add(iTop); mesh.TriangleIndices.Add(nBot); mesh.TriangleIndices.Add(nTop);
+                mesh.TriangleIndices.Add(topC); mesh.TriangleIndices.Add(nTop); mesh.TriangleIndices.Add(iTop);
+                mesh.TriangleIndices.Add(botC); mesh.TriangleIndices.Add(iBot); mesh.TriangleIndices.Add(nBot);
+            }
+            return mesh;
         }
     }
 }
