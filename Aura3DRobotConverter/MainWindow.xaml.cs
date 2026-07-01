@@ -68,7 +68,7 @@ namespace Aura3DRobotConverter
 
         private async void OnOpenStepFileClick(object sender, RoutedEventArgs e)
         {
-            string stepPath = ShowFileDialogWin32(
+            string stepPath = ShowFileDialogSafe(
                 "STEP CAD Files (*.step;*.stp)|*.step;*.stp",
                 "STEP 파일 선택"
             );
@@ -110,7 +110,7 @@ namespace Aura3DRobotConverter
         {
             Dispatcher.Invoke(async () =>
             {
-                string path = ShowFileDialogWin32(
+                string path = ShowFileDialogSafe(
                     "URDF Spec Files (*.urdf)|*.urdf|USD Spec Files (*.usda)|*.usda|All Files (*.*)|*.*",
                     "로봇 사양서 파일 가져오기"
                 );
@@ -574,64 +574,29 @@ namespace Aura3DRobotConverter
             }
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        private class OPENFILENAME
+        private string ShowFileDialogSafe(string filter, string title)
         {
-            public int lStructSize = 0;
-            public IntPtr hwndOwner = IntPtr.Zero;
-            public IntPtr hInstance = IntPtr.Zero;
-            public string lpstrFilter = null!;
-            public string lpstrCustomFilter = null!;
-            public int nMaxCustFilter = 0;
-            public int nFilterIndex = 0;
-            public string lpstrFile = null!;
-            public int nMaxFile = 0;
-            public string lpstrFileTitle = null!;
-            public int nMaxFileTitle = 0;
-            public string lpstrInitialDir = null!;
-            public string lpstrTitle = null!;
-            public int Flags = 0;
-            public short nFileOffset = 0;
-            public short nFileExtension = 0;
-            public string lpstrDefExt = null!;
-            public IntPtr lCustData = IntPtr.Zero;
-            public IntPtr lpfnHook = IntPtr.Zero;
-            public string lpTemplateName = null!;
-            public IntPtr pvReserved = IntPtr.Zero;
-            public int dwReserved = 0;
-            public int FlagsEx = 0;
-        }
-
-        [DllImport("comdlg32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern bool GetOpenFileName([In, Out] OPENFILENAME ofn);
-
-        private string ShowFileDialogWin32(string filter, string title)
-        {
-            var ofn = new OPENFILENAME();
-            ofn.lStructSize = Marshal.SizeOf(ofn);
-            
-            // Format standard C# filter to Win32 filter format: "Description\0*.ext\0Description2\0*.ext2\0\0"
-            string win32Filter = filter.Replace('|', '\0') + "\0\0";
-            ofn.lpstrFilter = win32Filter;
-            
-            var fileBuffer = new string('\0', 2048);
-            ofn.lpstrFile = fileBuffer;
-            ofn.nMaxFile = fileBuffer.Length;
-            ofn.lpstrTitle = title;
-            ofn.lpstrInitialDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            
-            // OFN_FILEMUSTEXIST (0x1000) | OFN_PATHMUSTEXIST (0x800) | OFN_NOCHANGEDIR (0x8)
-            // OFN_DONTADDTORECENT (0x02000000) | OFN_NOVALIDATE (0x100)
-            ofn.Flags = 0x00001000 | 0x00000800 | 0x00000008 | 0x02000000 | 0x00000100;
-            
-            var helper = new System.Windows.Interop.WindowInteropHelper(this);
-            ofn.hwndOwner = helper.Handle;
-
-            if (GetOpenFileName(ofn))
+            var openFileDialog = new System.Windows.Forms.OpenFileDialog
             {
-                return ofn.lpstrFile.Split('\0')[0];
-            }
-            return string.Empty;
+                Filter = filter,
+                Title = title,
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                AutoUpgradeEnabled = false
+            };
+
+            string selectedPath = string.Empty;
+            var thread = new System.Threading.Thread(() =>
+            {
+                if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    selectedPath = openFileDialog.FileName;
+                }
+            });
+            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            return selectedPath;
         }
 
         // ==========================================
