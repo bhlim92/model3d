@@ -74,9 +74,9 @@ namespace Aura3DRobotConverter
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
             };
 
-            if (openFileDialog.ShowDialog() == true)
+            string stepPath = ShowFileDialogIsolated(openFileDialog);
+            if (!string.IsNullOrEmpty(stepPath))
             {
-                string stepPath = openFileDialog.FileName;
                 Log($"[Parser] Loading STEP file: {stepPath}");
 
                 // Setup local scratch conversion session directory
@@ -119,9 +119,9 @@ namespace Aura3DRobotConverter
                     InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                 };
 
-                if (openFileDialog.ShowDialog(this) == true)
+                string path = ShowFileDialogIsolated(openFileDialog);
+                if (!string.IsNullOrEmpty(path))
                 {
-                    string path = openFileDialog.FileName;
                     string extension = Path.GetExtension(path).ToLower();
                     string directory = Path.GetDirectoryName(path) ?? string.Empty;
                     
@@ -553,6 +553,22 @@ namespace Aura3DRobotConverter
                     geomModel.BackMaterial = material;
                 }
             }
+        }
+
+        private string ShowFileDialogIsolated(Microsoft.Win32.OpenFileDialog dialog)
+        {
+            string selectedPath = string.Empty;
+            var thread = new System.Threading.Thread(() =>
+            {
+                if (dialog.ShowDialog() == true)
+                {
+                    selectedPath = dialog.FileName;
+                }
+            });
+            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            return selectedPath;
         }
 
         // ==========================================
