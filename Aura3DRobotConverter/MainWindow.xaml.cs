@@ -70,7 +70,8 @@ namespace Aura3DRobotConverter
             var openFileDialog = new OpenFileDialog
             {
                 Filter = "STEP CAD Files (*.step;*.stp)|*.step;*.stp",
-                Title = "STEP 파일 선택"
+                Title = "STEP 파일 선택",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
             };
 
             if (openFileDialog.ShowDialog() == true)
@@ -114,7 +115,8 @@ namespace Aura3DRobotConverter
                 var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Filter = "URDF Spec Files (*.urdf)|*.urdf|USD Spec Files (*.usda)|*.usda|All Files (*.*)|*.*",
-                    Title = "로봇 사양서 파일 가져오기"
+                    Title = "로봇 사양서 파일 가져오기",
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
                 };
 
                 if (openFileDialog.ShowDialog(this) == true)
