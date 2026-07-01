@@ -277,6 +277,25 @@ namespace Aura3DRobotConverter
                     _selectedJoint = null;
                     JointEditorPanel.Visibility = Visibility.Collapsed;
                     HighlightLink(linkName);
+
+                    // Find if there is a parent joint driving this link and draw the orange axis arrow
+                    if (_config != null)
+                    {
+                        var parentJoint = _config.Joints.FirstOrDefault(j => j.Child == linkName);
+                        if (parentJoint != null)
+                        {
+                            HighlightJointIn3D(parentJoint);
+                        }
+                        else
+                        {
+                            // Clear axis helper if selecting root link
+                            if (_currentJointHelper != null)
+                            {
+                                Viewport.Children.Remove(_currentJointHelper);
+                                _currentJointHelper = null;
+                            }
+                        }
+                    }
                     return;
                 }
             }
@@ -392,7 +411,7 @@ namespace Aura3DRobotConverter
                 Point1 = jointGlobalPoint,
                 Point2 = jointGlobalPoint + (globalAxis * 0.4),
                 Diameter = 0.035,
-                Fill = Brushes.Cyan
+                Fill = Brushes.Orange
             };
 
             Viewport.Children.Add(_currentJointHelper);
