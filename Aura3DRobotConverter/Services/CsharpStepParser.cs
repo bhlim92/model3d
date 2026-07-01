@@ -428,10 +428,15 @@ namespace Aura3DRobotConverter.Services
                         double[] diagI = { 1e-5, 1e-5, 1e-5 };
                         string meshPath = string.Empty;
 
+                        int depth = 0;
                         idx++;
-                        while (idx < lines.Length && !lines[idx].Trim().StartsWith("}"))
+                        while (idx < lines.Length)
                         {
                             string subLine = lines[idx].Trim();
+                            
+                            if (subLine.Contains("{")) depth++;
+                            if (subLine.Contains("}")) depth--;
+
                             if (subLine.StartsWith("float physics:mass"))
                             {
                                 double.TryParse(subLine.Split('=').Last().Trim(), out mass);
@@ -464,6 +469,8 @@ namespace Aura3DRobotConverter.Services
                                     meshPath = refMatch.Groups[1].Value;
                                 }
                             }
+
+                            if (depth < 0) break;
                             idx++;
                         }
 
@@ -494,10 +501,15 @@ namespace Aura3DRobotConverter.Services
                         double[] axis = { 0, 0, 1 };
                         double lower = -3.1415, upper = 3.1415;
 
+                        int depth = 0;
                         idx++;
-                        while (idx < lines.Length && !lines[idx].Trim().StartsWith("}"))
+                        while (idx < lines.Length)
                         {
                             string subLine = lines[idx].Trim();
+
+                            if (subLine.Contains("{")) depth++;
+                            if (subLine.Contains("}")) depth--;
+
                             if (subLine.StartsWith("rel physics:body0"))
                             {
                                 parent = subLine.Split('/').Last().Trim('>', ' ');
@@ -545,6 +557,8 @@ namespace Aura3DRobotConverter.Services
                                 double.TryParse(subLine.Split('=').Last().Trim(';', ' '), out double val);
                                 upper = (jType == "revolute") ? val * Math.PI / 180.0 : val;
                             }
+
+                            if (depth < 0) break;
                             idx++;
                         }
 
