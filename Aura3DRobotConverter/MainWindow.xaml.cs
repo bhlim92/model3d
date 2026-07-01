@@ -32,6 +32,9 @@ namespace Aura3DRobotConverter
         
         // Tracking loaded visuals to redraw or modify easily
         private readonly List<Visual3D> _addedRobotVisuals = new List<Visual3D>();
+        private readonly Dictionary<string, ModelVisual3D> _linkVisualMap = new Dictionary<string, ModelVisual3D>();
+        private readonly Dictionary<string, Material> _originalMaterials = new Dictionary<string, Material>();
+        private string? _highlightedLink;
 
         public MainWindow()
         {
@@ -166,6 +169,9 @@ namespace Aura3DRobotConverter
                 Viewport.Children.Remove(visual);
             }
             _addedRobotVisuals.Clear();
+            _linkVisualMap.Clear();
+            _originalMaterials.Clear();
+            _highlightedLink = null;
             
             if (_currentJointHelper != null)
             {
@@ -203,6 +209,8 @@ namespace Aura3DRobotConverter
                     
                     Viewport.Children.Add(visual);
                     _addedRobotVisuals.Add(visual);
+                    _linkVisualMap[link.Name] = visual;
+                    SaveOriginalMaterial(link.Name, visual);
                 }
                 catch (Exception ex)
                 {
@@ -261,11 +269,21 @@ namespace Aura3DRobotConverter
                     _selectedJoint = joint;
                     ShowJointEditorPanel(joint);
                     HighlightJointIn3D(joint);
+                    HighlightLink(joint.Child);
+                    return;
+                }
+                else if (selectedNode.Tag is RobotLink link)
+                {
+                    _selectedJoint = null;
+                    JointEditorPanel.Visibility = Visibility.Collapsed;
+                    HighlightLink(link.Name);
                     return;
                 }
             }
             
+            _selectedJoint = null;
             JointEditorPanel.Visibility = Visibility.Collapsed;
+            HighlightLink(null);
         }
 
         private void ShowJointEditorPanel(RobotJoint joint)
@@ -383,6 +401,72 @@ namespace Aura3DRobotConverter
             if (Viewport.Camera != null)
             {
                 Viewport.Camera.LookAt(jointGlobalPoint, 500);
+            }
+        }
+
+        private void SaveOriginalMaterial(string linkName, ModelVisual3D visual)
+        {
+            if (_originalMaterials.ContainsKey(linkName)) return;
+
+            if (visual.Content is Model3DGroup group && group.Children.Count > 0 && group.Children[0] is GeometryModel3D geomModel)
+            {
+                _originalMaterials[linkName] = geomModel.Material;
+            }
+            else if (visual.Content is GeometryModel3D singleGeom)
+            {
+                _originalMaterials[linkName] = singleGeom.Material;
+            }
+            else
+            {
+                _originalMaterials[linkName] = new DiffuseMaterial(Brushes.LightGray);
+            }
+        }
+
+        private void HighlightLink(string? linkName)
+        {
+            // Reset previous highlight
+            if (!string.IsNullOrEmpty(_highlightedLink) && _linkVisualMap.TryGetValue(_highlightedLink, out var oldVisual))
+            {
+                Material origMat = _originalMaterials.TryGetValue(_highlightedLink, out var mat) ? mat : new DiffuseMaterial(Brushes.LightGray);
+                SetLinkMaterial(oldVisual, origMat);
+            }
+
+            _highlightedLink = linkName;
+
+            if (!string.IsNullOrEmpty(_highlightedLink) && _linkVisualMap.TryGetValue(_highlightedLink, out var newVisual))
+            {
+                // Highlight material: vibrant Orange/Gold
+                var highlightMat = new DiffuseMaterial(new SolidColorBrush(Color.FromRgb(255, 140, 0)));
+                SetLinkMaterial(newVisual, highlightMat);
+            }
+        }
+
+        private void SetLinkMaterial(ModelVisual3D visual, Material material)
+        {
+            if (visual.Content is Model3DGroup group)
+            {
+                SetGroupMaterial(group, material);
+            }
+            else if (visual.Content is GeometryModel3D geomModel)
+            {
+                geomModel.Material = material;
+                geomModel.BackMaterial = material;
+            }
+        }
+
+        private void SetGroupMaterial(Model3DGroup group, Material material)
+        {
+            foreach (var child in group.Children)
+            {
+                if (child is Model3DGroup subGroup)
+                {
+                    SetGroupMaterial(subGroup, material);
+                }
+                else if (child is GeometryModel3D geomModel)
+                {
+                    geomModel.Material = material;
+                    geomModel.BackMaterial = material;
+                }
             }
         }
 
