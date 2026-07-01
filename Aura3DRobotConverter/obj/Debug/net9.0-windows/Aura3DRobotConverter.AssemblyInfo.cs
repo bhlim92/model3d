@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Aura3DRobotConverter")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+04aa42c27eafdfcd59bc60c1c358855df577e0b6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+10a56e4c4414f10d7903cf919ec05a390d8f7ceb")]
 [assembly: System.Reflection.AssemblyProductAttribute("Aura3DRobotConverter")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Aura3DRobotConverter")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

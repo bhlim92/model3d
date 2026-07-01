@@ -107,65 +107,68 @@ namespace Aura3DRobotConverter
             }
         }
 
-        private async void OnImportModelClick(object sender, RoutedEventArgs e)
+        private void OnImportModelClick(object sender, RoutedEventArgs e)
         {
-            var openFileDialog = new OpenFileDialog
+            Dispatcher.Invoke(async () =>
             {
-                Filter = "Robot Spec Files (*.urdf;*.usda)|*.urdf;*.usda|URDF Files (*.urdf)|*.urdf|USD Files (*.usda)|*.usda",
-                Title = "URDF 또는 USD 사양서 가져오기"
-            };
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                string path = openFileDialog.FileName;
-                string extension = Path.GetExtension(path).ToLower();
-                string directory = Path.GetDirectoryName(path) ?? string.Empty;
-                
-                Log($"[Importer] 파일 로드 시작: {path}");
-
-                try
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Log("[Importer] 백그라운드 스레드에서 파일 파싱 수행 중...");
-                    RobotConfig? config = await Task.Run(() =>
+                    Filter = "URDF Spec Files (*.urdf)|*.urdf|USD Spec Files (*.usda)|*.usda|All Files (*.*)|*.*",
+                    Title = "로봇 사양서 파일 가져오기"
+                };
+
+                if (openFileDialog.ShowDialog(this) == true)
+                {
+                    string path = openFileDialog.FileName;
+                    string extension = Path.GetExtension(path).ToLower();
+                    string directory = Path.GetDirectoryName(path) ?? string.Empty;
+                    
+                    Log($"[Importer] 파일 로드 시작: {path}");
+
+                    try
                     {
-                        if (extension == ".urdf")
+                        Log("[Importer] 백그라운드 스레드에서 파일 파싱 수행 중...");
+                        RobotConfig? config = await Task.Run(() =>
                         {
-                            return CsharpStepParser.ParseUrdfFile(path);
-                        }
-                        else if (extension == ".usda")
+                            if (extension == ".urdf")
+                            {
+                                return CsharpStepParser.ParseUrdfFile(path);
+                            }
+                            else if (extension == ".usda")
+                            {
+                                return CsharpStepParser.ParseUsdaFile(path);
+                            }
+                            return null;
+                        });
+
+                        if (config != null)
                         {
-                            return CsharpStepParser.ParseUsdaFile(path);
+                            _config = config;
+                            _sessionDir = directory;
+
+                            Log($"[Importer] 파싱 완료! 모델명: {_config.RobotName}. 루트 링크: {_config.RootLink}");
+                            Log($"[Importer] 링크 개수: {_config.Links.Count}, 관절 개수: {_config.Joints.Count}");
+
+                            Log("[Importer] UI 트리 구조 갱신 중...");
+                            BuildAssemblyTreeUI();
+
+                            Log("[Importer] 3D 화면에 링크 STL 메쉬 배치 및 렌더링 중...");
+                            LoadRobotMeshesToViewer();
+                            
+                            Log("[Importer] 사양서 가져오기 완료!");
                         }
-                        return null;
-                    });
-
-                    if (config != null)
-                    {
-                        _config = config;
-                        _sessionDir = directory;
-
-                        Log($"[Importer] 파싱 완료! 모델명: {_config.RobotName}. 루트 링크: {_config.RootLink}");
-                        Log($"[Importer] 링크 개수: {_config.Links.Count}, 관절 개수: {_config.Joints.Count}");
-
-                        Log("[Importer] UI 트리 구조 갱신 중...");
-                        BuildAssemblyTreeUI();
-
-                        Log("[Importer] 3D 화면에 링크 STL 메쉬 배치 및 렌더링 중...");
-                        LoadRobotMeshesToViewer();
-                        
-                        Log("[Importer] 사양서 가져오기 완료!");
+                        else
+                        {
+                            throw new Exception("불러온 사양서 데이터가 존재하지 않습니다.");
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        throw new Exception("불러온 사양서 데이터가 존재하지 않습니다.");
+                        Log($"[Error] 가져오기 실패: {ex.Message}");
+                        MessageBox.Show($"모델 파일을 가져오는 데 실패했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
-                catch (Exception ex)
-                {
-                    Log($"[Error] 가져오기 실패: {ex.Message}");
-                    MessageBox.Show($"모델 파일을 가져오는 데 실패했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            });
         }
 
         private void BuildAssemblyTreeUI()
