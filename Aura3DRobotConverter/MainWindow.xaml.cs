@@ -67,14 +67,11 @@ namespace Aura3DRobotConverter
 
         private async void OnOpenStepFileClick(object sender, RoutedEventArgs e)
         {
-            var openFileDialog = new OpenFileDialog
-            {
-                Filter = "STEP CAD Files (*.step;*.stp)|*.step;*.stp",
-                Title = "STEP 파일 선택",
-                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-            };
+            string stepPath = ShowFileDialogIsolated(
+                "STEP CAD Files (*.step;*.stp)|*.step;*.stp",
+                "STEP 파일 선택"
+            );
 
-            string stepPath = ShowFileDialogIsolated(openFileDialog);
             if (!string.IsNullOrEmpty(stepPath))
             {
                 Log($"[Parser] Loading STEP file: {stepPath}");
@@ -112,14 +109,11 @@ namespace Aura3DRobotConverter
         {
             Dispatcher.Invoke(async () =>
             {
-                var openFileDialog = new Microsoft.Win32.OpenFileDialog
-                {
-                    Filter = "URDF Spec Files (*.urdf)|*.urdf|USD Spec Files (*.usda)|*.usda|All Files (*.*)|*.*",
-                    Title = "로봇 사양서 파일 가져오기",
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                };
+                string path = ShowFileDialogIsolated(
+                    "URDF Spec Files (*.urdf)|*.urdf|USD Spec Files (*.usda)|*.usda|All Files (*.*)|*.*",
+                    "로봇 사양서 파일 가져오기"
+                );
 
-                string path = ShowFileDialogIsolated(openFileDialog);
                 if (!string.IsNullOrEmpty(path))
                 {
                     string extension = Path.GetExtension(path).ToLower();
@@ -579,11 +573,18 @@ namespace Aura3DRobotConverter
             }
         }
 
-        private string ShowFileDialogIsolated(Microsoft.Win32.OpenFileDialog dialog)
+        private string ShowFileDialogIsolated(string filter, string title)
         {
             string selectedPath = string.Empty;
             var thread = new System.Threading.Thread(() =>
             {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = filter,
+                    Title = title,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                };
+
                 if (dialog.ShowDialog() == true)
                 {
                     selectedPath = dialog.FileName;
