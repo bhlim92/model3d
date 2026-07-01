@@ -32,14 +32,23 @@
                     <TextBlock Text="Local .NET Desktop Kinematics Compiler" Foreground="#5F5F5F" FontSize="11" Margin="0,2,0,0" />
                 </StackPanel>
 
-                <!-- Step Load Button -->
-                <Button Grid.Row="1" Content="STEP/STP 파일 열기..." Click="OnOpenStepFileClick" Height="36" Background="#FFFFFF" Foreground="#0067C0" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand" Margin="0,0,0,15">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                <!-- Step Load & Import Buttons -->
+                <StackPanel Grid.Row="1" Margin="0,0,0,15">
+                    <Button Content="STEP/STP 파일 변환..." Click="OnOpenStepFileClick" Height="36" Background="#FFFFFF" Foreground="#0067C0" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand" Margin="0,0,0,8">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="URDF / USD 사양서 가져오기..." Click="OnImportModelClick" Height="36" Background="#FFFFFF" Foreground="#0067C0" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
 
                 <!-- Assembly Tree View -->
                 <GroupBox Grid.Row="2" Header="로봇 링크 및 관절 계층" Foreground="#0067C0" BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,0,0,15" Padding="5">

@@ -210,5 +210,394 @@ namespace Aura3DRobotConverter.Services
 
             return (mass, comMeters, new double[] { ixx, iyy, izz, ixy, ixz, iyz });
         }
+
+        public static RobotConfig ParseUrdfFile(string urdfPath)
+        {
+            var doc = System.Xml.Linq.XDocument.Load(urdfPath);
+            var xRoot = doc.Root;
+            if (xRoot == null || xRoot.Name != "robot")
+            {
+                throw new Exception("Invalid URDF format. The root element must be <robot>.");
+            }
+
+            string robotName = xRoot.Attribute("name")?.Value ?? "ImportedRobot";
+            var links = new List<RobotLink>();
+            var joints = new List<RobotJoint>();
+
+            // Parse Links
+            foreach (var xLink in xRoot.Elements("link"))
+            {
+                string linkName = xLink.Attribute("name")?.Value ?? "unknown_link";
+                double mass = 0.001;
+                double[] com = { 0, 0, 0 };
+                var inertia = new Models.Inertia { Ixx = 1e-5, Iyy = 1e-5, Izz = 1e-5 };
+
+                var xInertial = xLink.Element("inertial");
+                if (xInertial != null)
+                {
+                    double.TryParse(xInertial.Element("mass")?.Attribute("value")?.Value, out mass);
+                    
+                    string? xyzStr = xInertial.Element("origin")?.Attribute("xyz")?.Value;
+                    if (!string.IsNullOrEmpty(xyzStr))
+                    {
+                        var tokens = xyzStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (tokens.Length >= 3)
+                        {
+                            double.TryParse(tokens[0], out com[0]);
+                            double.TryParse(tokens[1], out com[1]);
+                            double.TryParse(tokens[2], out com[2]);
+                        }
+                    }
+
+                    var xInertia = xInertial.Element("inertia");
+                    if (xInertia != null)
+                    {
+                        double.TryParse(xInertia.Attribute("ixx")?.Value, out double ixx);
+                        double.TryParse(xInertia.Attribute("ixy")?.Value, out double ixy);
+                        double.TryParse(xInertia.Attribute("ixz")?.Value, out double ixz);
+                        double.TryParse(xInertia.Attribute("iyy")?.Value, out double iyy);
+                        double.TryParse(xInertia.Attribute("iyz")?.Value, out double iyz);
+                        double.TryParse(xInertia.Attribute("izz")?.Value, out double izz);
+
+                        inertia = new Models.Inertia
+                        {
+                            Ixx = ixx, Ixy = ixy, Ixz = ixz,
+                            Iyy = iyy, Iyz = iyz, Izz = izz
+                        };
+                    }
+                }
+
+                string meshPath = string.Empty;
+                var xMesh = xLink.Element("visual")?.Element("geometry")?.Element("mesh");
+                if (xMesh != null)
+                {
+                    string filename = xMesh.Attribute("filename")?.Value ?? string.Empty;
+                    if (filename.StartsWith("package://"))
+                    {
+                        int slashIndex = filename.IndexOf('/', 10);
+                        if (slashIndex != -1)
+                        {
+                            meshPath = filename.Substring(slashIndex + 1);
+                        }
+                    }
+                    else
+                    {
+                        meshPath = filename;
+                    }
+                }
+
+                links.Add(new RobotLink
+                {
+                    Name = linkName,
+                    MeshPath = meshPath,
+                    Mass = mass,
+                    CenterOfMass = com,
+                    Inertia = inertia
+                });
+            }
+
+            // Parse Joints
+            foreach (var xJoint in xRoot.Elements("joint"))
+            {
+                string jointName = xJoint.Attribute("name")?.Value ?? "unknown_joint";
+                string type = xJoint.Attribute("type")?.Value ?? "fixed";
+                string parent = xJoint.Element("parent")?.Attribute("link")?.Value ?? string.Empty;
+                string child = xJoint.Element("child")?.Attribute("link")?.Value ?? string.Empty;
+
+                double[] xyz = { 0, 0, 0 };
+                double[] rpy = { 0, 0, 0 };
+                var xOrigin = xJoint.Element("origin");
+                if (xOrigin != null)
+                {
+                    string? xyzStr = xOrigin.Attribute("xyz")?.Value;
+                    if (!string.IsNullOrEmpty(xyzStr))
+                    {
+                        var tokens = xyzStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (tokens.Length >= 3)
+                        {
+                            double.TryParse(tokens[0], out xyz[0]);
+                            double.TryParse(tokens[1], out xyz[1]);
+                            double.TryParse(tokens[2], out xyz[2]);
+                        }
+                    }
+
+                    string? rpyStr = xOrigin.Attribute("rpy")?.Value;
+                    if (!string.IsNullOrEmpty(rpyStr))
+                    {
+                        var tokens = rpyStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (tokens.Length >= 3)
+                        {
+                            double.TryParse(tokens[0], out rpy[0]);
+                            double.TryParse(tokens[1], out rpy[1]);
+                            double.TryParse(tokens[2], out rpy[2]);
+                        }
+                    }
+                }
+
+                double[] axis = { 0, 0, 1 };
+                var xAxis = xJoint.Element("axis");
+                if (xAxis != null)
+                {
+                    string? axisStr = xAxis.Attribute("xyz")?.Value;
+                    if (!string.IsNullOrEmpty(axisStr))
+                    {
+                        var tokens = axisStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (tokens.Length >= 3)
+                        {
+                            double.TryParse(tokens[0], out axis[0]);
+                            double.TryParse(tokens[1], out axis[1]);
+                            double.TryParse(tokens[2], out axis[2]);
+                        }
+                    }
+                }
+
+                var limits = new JointLimits { Lower = -3.1415, Upper = 3.1415, Effort = 10.0, Velocity = 1.5 };
+                var xLimit = xJoint.Element("limit");
+                if (xLimit != null)
+                {
+                    double.TryParse(xLimit.Attribute("lower")?.Value, out double lower);
+                    double.TryParse(xLimit.Attribute("upper")?.Value, out double upper);
+                    double.TryParse(xLimit.Attribute("effort")?.Value, out double effort);
+                    double.TryParse(xLimit.Attribute("velocity")?.Value, out double velocity);
+
+                    limits = new JointLimits { Lower = lower, Upper = upper, Effort = effort, Velocity = velocity };
+                }
+
+                joints.Add(new RobotJoint
+                {
+                    Name = jointName,
+                    Type = type,
+                    Parent = parent,
+                    Child = child,
+                    Origin = new JointOrigin { Xyz = xyz, Rpy = rpy },
+                    Axis = axis,
+                    Limits = limits
+                });
+            }
+
+            string rootLink = "base_link";
+            if (links.Count > 0)
+            {
+                var children = new HashSet<string>(joints.Select(j => j.Child));
+                var root = links.FirstOrDefault(l => !children.Contains(l.Name));
+                if (root != null) rootLink = root.Name;
+            }
+
+            return new RobotConfig
+            {
+                RobotName = robotName,
+                RootLink = rootLink,
+                Links = links,
+                Joints = joints
+            };
+        }
+
+        public static RobotConfig ParseUsdaFile(string usdaPath)
+        {
+            var lines = File.ReadAllLines(usdaPath);
+            string robotName = "ImportedRobot";
+            var links = new List<RobotLink>();
+            var joints = new List<RobotJoint>();
+
+            foreach (var line in lines)
+            {
+                if (line.Contains("defaultPrim ="))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(line, "\"[^\"]+\"");
+                    if (match.Success)
+                    {
+                        robotName = match.Value.Trim('"');
+                        break;
+                    }
+                }
+            }
+
+            int idx = 0;
+            while (idx < lines.Length)
+            {
+                string line = lines[idx].Trim();
+
+                if (line.StartsWith("def Xform") && !line.Contains(robotName) && !line.Contains("visual_mesh"))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(line, "\"[^\"]+\"");
+                    if (match.Success)
+                    {
+                        string linkName = match.Value.Trim('"');
+                        double mass = 0.001;
+                        double[] com = { 0, 0, 0 };
+                        double[] diagI = { 1e-5, 1e-5, 1e-5 };
+                        string meshPath = string.Empty;
+
+                        idx++;
+                        while (idx < lines.Length && !lines[idx].Trim().StartsWith("}"))
+                        {
+                            string subLine = lines[idx].Trim();
+                            if (subLine.StartsWith("float physics:mass"))
+                            {
+                                double.TryParse(subLine.Split('=').Last().Trim(), out mass);
+                            }
+                            else if (subLine.StartsWith("point3f physics:centerOfMass"))
+                            {
+                                var numbers = System.Text.RegularExpressions.Regex.Matches(subLine, @"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?");
+                                if (numbers.Count >= 3)
+                                {
+                                    double.TryParse(numbers[0].Value, out com[0]);
+                                    double.TryParse(numbers[1].Value, out com[1]);
+                                    double.TryParse(numbers[2].Value, out com[2]);
+                                }
+                            }
+                            else if (subLine.StartsWith("vector3f physics:diagonalInertia"))
+                            {
+                                var numbers = System.Text.RegularExpressions.Regex.Matches(subLine, @"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?");
+                                if (numbers.Count >= 3)
+                                {
+                                    double.TryParse(numbers[0].Value, out diagI[0]);
+                                    double.TryParse(numbers[1].Value, out diagI[1]);
+                                    double.TryParse(numbers[2].Value, out diagI[2]);
+                                }
+                            }
+                            else if (subLine.Contains("prepend references"))
+                            {
+                                var refMatch = System.Text.RegularExpressions.Regex.Match(subLine, @"@\.\/([^@]+)@");
+                                if (refMatch.Success)
+                                {
+                                    meshPath = refMatch.Groups[1].Value;
+                                }
+                            }
+                            idx++;
+                        }
+
+                        links.Add(new RobotLink
+                        {
+                            Name = linkName,
+                            MeshPath = meshPath,
+                            Mass = mass,
+                            CenterOfMass = com,
+                            Inertia = new Models.Inertia { Ixx = diagI[0], Iyy = diagI[1], Izz = diagI[2] }
+                        });
+                    }
+                }
+                else if (line.StartsWith("def PhysicsRevoluteJoint") || line.StartsWith("def PhysicsFixedJoint") || line.StartsWith("def PhysicsPrismaticJoint"))
+                {
+                    string jType = "fixed";
+                    if (line.Contains("PhysicsRevoluteJoint")) jType = "revolute";
+                    else if (line.Contains("PhysicsPrismaticJoint")) jType = "prismatic";
+
+                    var match = System.Text.RegularExpressions.Regex.Match(line, "\"[^\"]+\"");
+                    if (match.Success)
+                    {
+                        string jointName = match.Value.Trim('"');
+                        string parent = string.Empty;
+                        string child = string.Empty;
+                        double[] xyz = { 0, 0, 0 };
+                        double[] rpy = { 0, 0, 0 };
+                        double[] axis = { 0, 0, 1 };
+                        double lower = -3.1415, upper = 3.1415;
+
+                        idx++;
+                        while (idx < lines.Length && !lines[idx].Trim().StartsWith("}"))
+                        {
+                            string subLine = lines[idx].Trim();
+                            if (subLine.StartsWith("rel physics:body0"))
+                            {
+                                parent = subLine.Split('/').Last().Trim('>', ' ');
+                            }
+                            else if (subLine.StartsWith("rel physics:body1"))
+                            {
+                                child = subLine.Split('/').Last().Trim('>', ' ');
+                            }
+                            else if (subLine.StartsWith("point3f physics:localPos0"))
+                            {
+                                var numbers = System.Text.RegularExpressions.Regex.Matches(subLine, @"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?");
+                                if (numbers.Count >= 3)
+                                {
+                                    double.TryParse(numbers[0].Value, out xyz[0]);
+                                    double.TryParse(numbers[1].Value, out xyz[1]);
+                                    double.TryParse(numbers[2].Value, out xyz[2]);
+                                }
+                            }
+                            else if (subLine.StartsWith("quatf physics:localRot0"))
+                            {
+                                var numbers = System.Text.RegularExpressions.Regex.Matches(subLine, @"[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?");
+                                if (numbers.Count >= 4)
+                                {
+                                    double.TryParse(numbers[0].Value, out double qw);
+                                    double.TryParse(numbers[1].Value, out double qx);
+                                    double.TryParse(numbers[2].Value, out double qy);
+                                    double.TryParse(numbers[3].Value, out double qz);
+                                    rpy = QuaternionToRpy(qw, qx, qy, qz);
+                                }
+                            }
+                            else if (subLine.StartsWith("token physics:axis"))
+                            {
+                                string axisTok = subLine.Split('=').Last().Trim('"', ' ', ';');
+                                if (axisTok == "X") axis = new double[] { 1, 0, 0 };
+                                else if (axisTok == "Y") axis = new double[] { 0, 1, 0 };
+                                else axis = new double[] { 0, 0, 1 };
+                            }
+                            else if (subLine.StartsWith("float physics:lowerLimit"))
+                            {
+                                double.TryParse(subLine.Split('=').Last().Trim(';', ' '), out double val);
+                                lower = (jType == "revolute") ? val * Math.PI / 180.0 : val;
+                            }
+                            else if (subLine.StartsWith("float physics:upperLimit"))
+                            {
+                                double.TryParse(subLine.Split('=').Last().Trim(';', ' '), out double val);
+                                upper = (jType == "revolute") ? val * Math.PI / 180.0 : val;
+                            }
+                            idx++;
+                        }
+
+                        joints.Add(new RobotJoint
+                        {
+                            Name = jointName,
+                            Type = jType,
+                            Parent = parent,
+                            Child = child,
+                            Origin = new JointOrigin { Xyz = xyz, Rpy = rpy },
+                            Axis = axis,
+                            Limits = new JointLimits { Lower = lower, Upper = upper, Effort = 10.0, Velocity = 1.5 }
+                        });
+                    }
+                }
+                idx++;
+            }
+
+            string rootLink = "base_link";
+            if (links.Count > 0)
+            {
+                var children = new HashSet<string>(joints.Select(j => j.Child));
+                var root = links.FirstOrDefault(l => !children.Contains(l.Name));
+                if (root != null) rootLink = root.Name;
+            }
+
+            return new RobotConfig
+            {
+                RobotName = robotName,
+                RootLink = rootLink,
+                Links = links,
+                Joints = joints
+            };
+        }
+
+        private static double[] QuaternionToRpy(double w, double x, double y, double z)
+        {
+            double sinr_cosp = 2 * (w * x + y * z);
+            double cosr_cosp = 1 - 2 * (x * x + y * y);
+            double roll = Math.Atan2(sinr_cosp, cosr_cosp);
+
+            double sinp = 2 * (w * y - z * x);
+            double pitch;
+            if (Math.Abs(sinp) >= 1)
+                pitch = Math.CopySign(Math.PI / 2, sinp);
+            else
+                pitch = Math.Asin(sinp);
+
+            double siny_cosp = 2 * (w * z + x * y);
+            double cosy_cosp = 1 - 2 * (y * y + z * z);
+            double yaw = Math.Atan2(siny_cosp, cosy_cosp);
+
+            return new double[] { roll, pitch, yaw };
+        }
     }
 }

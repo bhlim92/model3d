@@ -107,6 +107,58 @@ namespace Aura3DRobotConverter
             }
         }
 
+        private void OnImportModelClick(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "Robot Spec Files (*.urdf;*.usda)|*.urdf;*.usda|URDF Files (*.urdf)|*.urdf|USD Files (*.usda)|*.usda",
+                Title = "URDF 또는 USD 사양서 가져오기"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string path = openFileDialog.FileName;
+                string extension = Path.GetExtension(path).ToLower();
+                string directory = Path.GetDirectoryName(path) ?? string.Empty;
+                
+                Log($"[Importer] Loading model specification: {path}");
+
+                try
+                {
+                    RobotConfig? config = null;
+                    if (extension == ".urdf")
+                    {
+                        config = CsharpStepParser.ParseUrdfFile(path);
+                    }
+                    else if (extension == ".usda")
+                    {
+                        config = CsharpStepParser.ParseUsdaFile(path);
+                    }
+
+                    if (config != null)
+                    {
+                        _config = config;
+                        _sessionDir = directory;
+
+                        Log($"[Importer] Success! Model Name: {_config.RobotName}. Root Link: {_config.RootLink}");
+                        Log($"[Importer] Total Links: {_config.Links.Count}, Total Joints: {_config.Joints.Count}");
+
+                        BuildAssemblyTreeUI();
+                        LoadRobotMeshesToViewer();
+                    }
+                    else
+                    {
+                        throw new Exception("Import result is empty.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"[Error] Importer failed: {ex.Message}");
+                    MessageBox.Show($"모델 파일을 가져오는 데 실패했습니다.\n{ex.Message}", "에러", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
         private void BuildAssemblyTreeUI()
         {
             if (_config == null) return;
