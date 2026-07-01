@@ -11,6 +11,7 @@ using Microsoft.Win32;
 using HelixToolkit.Wpf;
 using Aura3DRobotConverter.Models;
 using Aura3DRobotConverter.Services;
+using System.Runtime.InteropServices;
 
 namespace Aura3DRobotConverter
 {
@@ -67,7 +68,7 @@ namespace Aura3DRobotConverter
 
         private async void OnOpenStepFileClick(object sender, RoutedEventArgs e)
         {
-            string stepPath = ShowFileDialogIsolated(
+            string stepPath = ShowFileDialogWin32(
                 "STEP CAD Files (*.step;*.stp)|*.step;*.stp",
                 "STEP 파일 선택"
             );
@@ -109,7 +110,7 @@ namespace Aura3DRobotConverter
         {
             Dispatcher.Invoke(async () =>
             {
-                string path = ShowFileDialogIsolated(
+                string path = ShowFileDialogWin32(
                     "URDF Spec Files (*.urdf)|*.urdf|USD Spec Files (*.usda)|*.usda|All Files (*.*)|*.*",
                     "로봇 사양서 파일 가져오기"
                 );
@@ -573,27 +574,64 @@ namespace Aura3DRobotConverter
             }
         }
 
-        private string ShowFileDialogIsolated(string filter, string title)
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private class OPENFILENAME
         {
-            string selectedPath = string.Empty;
-            var thread = new System.Threading.Thread(() =>
-            {
-                var dialog = new Microsoft.Win32.OpenFileDialog
-                {
-                    Filter = filter,
-                    Title = title,
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                };
+            public int lStructSize = 0;
+            public IntPtr hwndOwner = IntPtr.Zero;
+            public IntPtr hInstance = IntPtr.Zero;
+            public string lpstrFilter = null!;
+            public string lpstrCustomFilter = null!;
+            public int nMaxCustFilter = 0;
+            public int nFilterIndex = 0;
+            public string lpstrFile = null!;
+            public int nMaxFile = 0;
+            public string lpstrFileTitle = null!;
+            public int nMaxFileTitle = 0;
+            public string lpstrInitialDir = null!;
+            public string lpstrTitle = null!;
+            public int Flags = 0;
+            public short nFileOffset = 0;
+            public short nFileExtension = 0;
+            public string lpstrDefExt = null!;
+            public IntPtr lCustData = IntPtr.Zero;
+            public IntPtr lpfnHook = IntPtr.Zero;
+            public string lpTemplateName = null!;
+            public IntPtr pvReserved = IntPtr.Zero;
+            public int dwReserved = 0;
+            public int FlagsEx = 0;
+        }
 
-                if (dialog.ShowDialog() == true)
-                {
-                    selectedPath = dialog.FileName;
-                }
-            });
-            thread.SetApartmentState(System.Threading.ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-            return selectedPath;
+        [DllImport("comdlg32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern bool GetOpenFileName([In, Out] OPENFILENAME ofn);
+
+        private string ShowFileDialogWin32(string filter, string title)
+        {
+            var ofn = new OPENFILENAME();
+            ofn.lStructSize = Marshal.SizeOf(ofn);
+            
+            // Format standard C# filter to Win32 filter format: "Description\0*.ext\0Description2\0*.ext2\0\0"
+            string win32Filter = filter.Replace('|', '\0') + "\0\0";
+            ofn.lpstrFilter = win32Filter;
+            
+            var fileBuffer = new string('\0', 2048);
+            ofn.lpstrFile = fileBuffer;
+            ofn.nMaxFile = fileBuffer.Length;
+            ofn.lpstrTitle = title;
+            ofn.lpstrInitialDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            
+            // OFN_FILEMUSTEXIST (0x1000) | OFN_PATHMUSTEXIST (0x800) | OFN_NOCHANGEDIR (0x8)
+            // OFN_DONTADDTORECENT (0x02000000) | OFN_NOVALIDATE (0x100)
+            ofn.Flags = 0x00001000 | 0x00000800 | 0x00000008 | 0x02000000 | 0x00000100;
+            
+            var helper = new System.Windows.Interop.WindowInteropHelper(this);
+            ofn.hwndOwner = helper.Handle;
+
+            if (GetOpenFileName(ofn))
+            {
+                return ofn.lpstrFile.Split('\0')[0];
+            }
+            return string.Empty;
         }
 
         // ==========================================
