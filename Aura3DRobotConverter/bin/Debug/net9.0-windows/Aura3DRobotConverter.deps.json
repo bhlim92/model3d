@@ -9,6 +9,7 @@
       "Aura3DRobotConverter/1.0.0": {
         "dependencies": {
           "AnyCAD.Foundation.NET": "2026.6.12.1032",
+          "AnyCAD.Foundation.Win64": "2026.6.12.1032",
           "HelixToolkit.Wpf": "3.1.2"
         },
         "runtime": {
@@ -24,6 +25,908 @@
           "lib/net80/AnyCAD.Foundation.NET.dll": {
             "assemblyVersion": "2026.6.12.1014",
             "fileVersion": "2026.6.12.1014"
+          }
+        }
+      },
+      "AnyCAD.Foundation.Win64/2026.6.12.1032": {
+        "runtimeTargets": {
+          "runtimes/win-x64/native/AnyCAD.APIHost.NET.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Annotation.App.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Annotation.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Annotation.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Assembly.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Assembly.Solver.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Assembly.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Building.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Building.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.Base.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.Core.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.Glad.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.SDL2.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2.32.10.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.Server.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.Sqlite3.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Common.Zip.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Copilot.Gateway.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Copilot.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Copilot.MCP.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Copilot.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Craft.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Craft.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Craft.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Data.App.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Data.Broker.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Data.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Data.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Drawing.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Drawing.IO.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Drawing.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Drawing.Nest.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Drawing.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Exchange.DWG.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Exchange.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Exchange.SAT.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Feature.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Feature.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Feature.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.FiniteElement.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.FiniteElement.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.FiniteElement.Mesher.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.FiniteElement.Netgen.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.FiniteElement.Solver.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.FiniteElement.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Foundation.NET.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "assemblyVersion": "2026.6.12.1014",
+            "fileVersion": "2026.6.12.1014"
+          },
+          "runtimes/win-x64/native/AnyCAD.Geometry.Builder.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Geometry.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Geometry.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Asset.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Effect.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Font.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Gui.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Mesh.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Renderer.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Window.SDL.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Graphics.Window.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Interop.DXF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Interop.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Interop.GLTF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Interop.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Interop.Mesh.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Library.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Nesting.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Part.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Part.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Platform.NET.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "assemblyVersion": "2026.6.12.1014",
+            "fileVersion": "2026.6.12.1014"
+          },
+          "runtimes/win-x64/native/AnyCAD.Plugin.HelloWorld.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.PointCloud.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.PointCloud.Driver.Vizum.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.PointCloud.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.PointCloud.PCL.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Robot.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Robot.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Routing.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Routing.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.SheetMetal.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.SheetMetal.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Simulate.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Simulate.Ik.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Simulate.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Simulate.Physics.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Simulate.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Sketch.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Sketch.Gcs.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Sketch.Solver.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Sketch.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Sketch3.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Sketch3.Solver.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Sketch3.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Solid.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Solid.Sat.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Structure.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Structure.Solver.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Structure.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Surface.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Surface.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Surface.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Tube.Data.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Tube.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Validator.exe": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Viewer.Kernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD.Viewer.View.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Designing_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Drawing_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Exchange_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Foundation_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Manufacturing_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Nesting_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Platform_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_PointCloud_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_QuickSolid_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/AnyCAD_Simulate_NETHost.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2026.0.0.0"
+          },
+          "runtimes/win-x64/native/IfcGeom.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/IfcParse.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TKBO.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKBRep.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKBin.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKBinL.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKBinTObj.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKBinXCAF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKBool.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKCAF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKCDF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDE.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDECascade.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDEGLTF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDEIGES.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDEOBJ.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDEPLY.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDESTEP.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDESTL.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKDEVRML.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKFeat.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKFillet.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKG2d.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKG3d.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKGeomAlgo.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKGeomBase.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKHLR.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKLCAF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKMath.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKMesh.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKNetgen.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TKOffset.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKPrim.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKRWMesh.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKService.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKShHealing.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKSmGeom.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TKSmKernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TKSmMedX.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TKSmMesh.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TKSmNetgen.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TKStd.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKStdL.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKTObj.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKTopAlgo.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKV3d.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKVCAF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKXCAF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKXMesh.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKXSBase.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKXml.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKXmlL.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKXmlTObj.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKXmlXCAF.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TKernel.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "7.9.0.0"
+          },
+          "runtimes/win-x64/native/TkSmHdf5.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TkSmMed.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/TkSmPthread.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/assimp.exe": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/cad2db.exe": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/cadtool.exe": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/ifc2db.exe": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/pcd2igs.exe": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
           }
         }
       },
@@ -581,6 +1484,13 @@
       "sha512": "sha512-yt6MekEjhsxfmtwLeUrvNuDJCSMG3MbjGdiGz/5NsjTjGhUDNp9TvA2qyrDMkubRoN1UBtEVU1yfYquaJ6MEhQ==",
       "path": "anycad.foundation.net/2026.6.12.1032",
       "hashPath": "anycad.foundation.net.2026.6.12.1032.nupkg.sha512"
+    },
+    "AnyCAD.Foundation.Win64/2026.6.12.1032": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-s8bT80EoHVdgvY3ncx5qoBBN4an+aLbvis2zuLI+mNj4IBwutTM3PCjclOrsPFVcyun7jBw5LgZSALeCWeRUrg==",
+      "path": "anycad.foundation.win64/2026.6.12.1032",
+      "hashPath": "anycad.foundation.win64.2026.6.12.1032.nupkg.sha512"
     },
     "CommunityToolkit.Common/8.3.2": {
       "type": "package",

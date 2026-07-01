@@ -55,6 +55,10 @@
               "target": "Package",
               "version": "[2026.6.12.1032, )"
             },
+            "AnyCAD.Foundation.Win64": {
+              "target": "Package",
+              "version": "[2026.6.12.1032, )"
+            },
             "HelixToolkit.Wpf": {
               "target": "Package",
               "version": "[3.1.2, )"

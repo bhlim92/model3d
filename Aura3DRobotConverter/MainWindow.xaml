@@ -128,6 +128,7 @@
 
             <hkt:HelixViewport3D x:Name="Viewport" Grid.Row="0" Background="#131317" BorderBrush="#2D2D35" BorderThickness="0,0,0,1"
                                  ShowCoordinateSystem="True" ShowFrameRate="False" ZoomExtentsWhenLoaded="True">
+                <hkt:DefaultLights />
                 <hkt:GridLinesVisual3D Width="20" Length="20" MinorDistance="0.25" MajorDistance="1" Normal="0,0,1" Thickness="0.015" />
             </hkt:HelixViewport3D>
 
