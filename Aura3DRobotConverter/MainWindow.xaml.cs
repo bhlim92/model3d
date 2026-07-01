@@ -272,11 +272,11 @@ namespace Aura3DRobotConverter
                     HighlightLink(joint.Child);
                     return;
                 }
-                else if (selectedNode.Tag is RobotLink link)
+                else if (selectedNode.Tag is string linkName)
                 {
                     _selectedJoint = null;
                     JointEditorPanel.Visibility = Visibility.Collapsed;
-                    HighlightLink(link.Name);
+                    HighlightLink(linkName);
                     return;
                 }
             }

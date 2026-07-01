@@ -61,7 +61,7 @@
 
                         <!-- Joint Type Selection -->
                         <TextBlock Text="관절 형태 (Type):" Foreground="#8F8F99" FontSize="11" Margin="0,0,0,3" />
-                        <ComboBox x:Name="JointTypeComboBox" SelectionChanged="OnJointTypeChanged" Height="28" Margin="0,0,0,10" Background="#2D2D32" Foreground="White" BorderThickness="1" BorderBrush="#3D3D45">
+                        <ComboBox x:Name="JointTypeComboBox" SelectionChanged="OnJointTypeChanged" Height="28" Margin="0,0,0,10" Background="#2D2D32" Foreground="#00f0ff" FontWeight="SemiBold" BorderThickness="1" BorderBrush="#3D3D45">
                             <ComboBox.Resources>
                                 <Style TargetType="ComboBoxItem">
                                     <Setter Property="Background" Value="#2D2D32" />
