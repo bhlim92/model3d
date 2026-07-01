@@ -193,9 +193,17 @@ namespace Aura3DRobotConverter
             RobotTreeView.Items.Add(rootNode);
         }
 
-        private void PopulateChildren(RobotTreeNode parentNode, string parentLinkName)
+        private void PopulateChildren(RobotTreeNode parentNode, string parentLinkName, HashSet<string>? visited = null)
         {
             if (_config == null) return;
+
+            visited ??= new HashSet<string>();
+            if (visited.Contains(parentLinkName))
+            {
+                Log($"[Warning] 순환 참조가 감지되어 트리 재귀를 중단했습니다: {parentLinkName}");
+                return;
+            }
+            visited.Add(parentLinkName);
 
             // Find all joints pointing from this parent
             var childJoints = _config.Joints.Where(j => j.Parent == parentLinkName).ToList();
@@ -218,8 +226,8 @@ namespace Aura3DRobotConverter
                 jointNode.Children.Add(childLinkNode);
                 parentNode.Children.Add(jointNode);
 
-                // Recurse down
-                PopulateChildren(childLinkNode, joint.Child);
+                // Recurse down, copy current visited set to prevent sibling contamination
+                PopulateChildren(childLinkNode, joint.Child, new HashSet<string>(visited));
             }
         }
 
@@ -256,6 +264,14 @@ namespace Aura3DRobotConverter
                     continue;
                 }
 
+                // Protect native Assimp importer from unsupported formats (Access Violation / Hard Crash)
+                string ext = Path.GetExtension(absoluteMeshPath).ToLower();
+                if (ext != ".stl" && ext != ".obj" && ext != ".dae" && ext != ".3ds")
+                {
+                    Log($"[Warning] 3D 뷰어가 지원하지 않는 시각 메쉬 형식입니다: {ext} ({link.Name})");
+                    continue;
+                }
+
                 try
                 {
                     var importer = new ModelImporter();
@@ -287,7 +303,7 @@ namespace Aura3DRobotConverter
             Viewport.ZoomExtents(1000);
         }
 
-        private Transform3D GetLinkTransform(string linkName)
+        private Transform3D GetLinkTransform(string linkName, HashSet<string>? visited = null)
         {
             var transformGroup = new Transform3DGroup();
 
@@ -295,6 +311,14 @@ namespace Aura3DRobotConverter
             {
                 return transformGroup; // Identity transformation for root base
             }
+
+            visited ??= new HashSet<string>();
+            if (visited.Contains(linkName))
+            {
+                Log($"[Warning] 역방향 변환 트리 계산 도중 순환 참조가 감지되었습니다: {linkName}");
+                return transformGroup;
+            }
+            visited.Add(linkName);
 
             // Backtrack parent links relative joint offset
             var parentJoint = _config.Joints.FirstOrDefault(j => j.Child == linkName);
@@ -313,7 +337,7 @@ namespace Aura3DRobotConverter
                 localTransform.Children.Add(new TranslateTransform3D(xyz[0], xyz[1], xyz[2]));
 
                 // Multiply by parent link's accumulated world transform
-                var parentWorldTransform = GetLinkTransform(parentJoint.Parent);
+                var parentWorldTransform = GetLinkTransform(parentJoint.Parent, new HashSet<string>(visited));
                 
                 transformGroup.Children.Add(localTransform);
                 transformGroup.Children.Add(parentWorldTransform);
