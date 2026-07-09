@@ -4,11 +4,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:hkt="http://helix-toolkit.org/wpf"
+        xmlns:hx="clr-namespace:HelixToolkit.Wpf.SharpDX;assembly=HelixToolkit.Wpf.SharpDX"
         xmlns:local="clr-namespace:Aura3DRobotConverter"
         mc:Ignorable="d"
         Title="Aura3D AI Robot CAD Converter (STEP -> URDF/USD)" 
         Height="768" Width="1200"
-        Background="#F3F3F3">
+        Background="#F3F3F3"
+        KeyDown="Window_KeyDown">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="380" />
@@ -30,18 +32,52 @@
                 <StackPanel Grid.Row="0" Margin="0,0,0,15">
                     <TextBlock Text="AURA3D ROBOT CONVERTER" Foreground="#0067C0" FontSize="16" FontWeight="Bold" />
                     <TextBlock Text="Local .NET Desktop Kinematics Compiler" Foreground="#5F5F5F" FontSize="11" Margin="0,2,0,0" />
+                    
+                    <!-- Loaded File Name Display -->
+                    <Border x:Name="LoadedFileBorder" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,10,0,0" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📄 파일: " Foreground="#5F5F5F" FontSize="11" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="LoadedFileNameTextBlock" Text="" Foreground="#1C1C1C" FontSize="11" FontWeight="Bold" TextTrimming="CharacterEllipsis" Width="260"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- Step Load & Import Buttons -->
                 <StackPanel Grid.Row="1" Margin="0,0,0,15">
-                    <Button Content="STEP/STP 파일 변환..." Click="OnOpenStepFileClick" Height="36" Background="#FFFFFF" Foreground="#0067C0" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand" Margin="0,0,0,8">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="4"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
-                    <Button Content="URDF / USD 사양서 가져오기..." Click="OnImportModelClick" Height="36" Background="#FFFFFF" Foreground="#0067C0" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand">
+                    <!-- CAD Up Axis Setting -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="CAD 높이축 (Up Axis)" Foreground="#5F5F5F" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="UpAxisComboBox" Grid.Column="1" SelectedIndex="1" Width="110" Height="24" FontSize="11" Background="#FFFFFF" Foreground="#1C1C1C" BorderThickness="1" BorderBrush="#CCCCCC">
+                            <ComboBoxItem Content="Y-Up"/>
+                            <ComboBoxItem Content="Z-Up (기본)"/>
+                        </ComboBox>
+                    </Grid>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="STEP 파일 변환..." Click="OnOpenStepFileClick" Height="36" Background="#FFFFFF" Foreground="#0067C0" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand" Margin="0,0,4,0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Grid.Column="1" Content="사양서 가져오기..." Click="OnImportModelClick" Height="36" Background="#FFFFFF" Foreground="#0067C0" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand" Margin="4,0,0,0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </Grid>
+                    <Button Content="새 파일 (초기화)" Click="OnNewFileClick" Height="34" Background="#FFFFFF" Foreground="#D83B01" BorderThickness="1" BorderBrush="#CCCCCC" Cursor="Hand" Margin="0,8,0,0">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="4"/>
@@ -53,9 +89,26 @@
                 <!-- Assembly Tree View -->
                 <GroupBox Grid.Row="2" Header="로봇 링크 및 관절 계층" Foreground="#0067C0" BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,0,0,15" Padding="5">
                     <TreeView x:Name="RobotTreeView" Background="#FFFFFF" BorderBrush="#E0E0E0" BorderThickness="1" Foreground="#1C1C1C" SelectedItemChanged="OnRobotTreeViewSelectedItemChanged">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                                <EventSetter Event="Selected" Handler="OnTreeViewItemSelected" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                 <StackPanel Orientation="Horizontal">
+                                    <StackPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="불투명 (Opaque)" Click="OnSetOpaqueClick" Tag="{Binding}" />
+                                            <MenuItem Header="반투명 (Semi-Transparent)" Click="OnSetSemiTransparentClick" Tag="{Binding}" />
+                                            <MenuItem Header="투명 (Transparent / Hidden)" Click="OnSetTransparentClick" Tag="{Binding}" />
+                                            <Separator />
+                                            <MenuItem Header="모든 하위 파트 불투명 (All Sub-parts Opaque)" Click="OnSetAllOpaqueClick" Tag="{Binding}" />
+                                            <MenuItem Header="모든 하위 파트 반투명 (All Sub-parts Semi-Transparent)" Click="OnSetAllSemiTransparentClick" Tag="{Binding}" />
+                                        </ContextMenu>
+                                    </StackPanel.ContextMenu>
                                     <TextBlock Text="{Binding Name}" Foreground="#1C1C1C" FontSize="12" Margin="2" />
                                 </StackPanel>
                             </HierarchicalDataTemplate>
@@ -142,24 +195,63 @@
                 <RowDefinition Height="140" />
             </Grid.RowDefinitions>
 
-            <TabControl Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="#D5D5D5" Background="#F3F3F3" Margin="0,0,0,0">
-                <TabControl.Resources>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Padding" Value="15,8"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="Foreground" Value="#0067C0"/>
-                    </Style>
-                </TabControl.Resources>
-                
-                <TabItem Header="3D Model Viewer">
-                    <hkt:HelixViewport3D x:Name="Viewport" Background="#ECECEC" ShowCoordinateSystem="True" ShowFrameRate="False" ZoomExtentsWhenLoaded="True">
-                        <hkt:DefaultLights />
-                        <hkt:GridLinesVisual3D Width="20" Length="20" MinorDistance="0.25" MajorDistance="1" Normal="0,0,1" Thickness="0.015" Fill="#B0B0B0" />
-                    </hkt:HelixViewport3D>
-                </TabItem>
+            <TabControl Grid.Row="0" Background="#ECECEC" BorderThickness="0">
+                <TabItem Header="3D 뷰">
+                    <Grid>
+                        <hx:Viewport3DX x:Name="Viewport" Background="#ECECEC" BorderBrush="#D5D5D5" BorderThickness="0,0,0,1"
+                                         ShowCoordinateSystem="True" ModelUpDirection="0,0,1" MouseDown="OnViewportMouseDown"
+                                         RotateCursor="SizeAll" PanCursor="Hand" ZoomCursor="SizeNS">
+                            <hx:Viewport3DX.Camera>
+                                <hx:PerspectiveCamera Position="3, -3, 2" LookDirection="-3, 3, -2" UpDirection="0, 0, 1" />
+                            </hx:Viewport3DX.Camera>
+                        </hx:Viewport3DX>
 
-                <TabItem Header="Source Code Viewer (URDF/USD)">
-                    <TextBox x:Name="SourceCodeTextBox" IsReadOnly="True" FontFamily="Consolas" FontSize="12.5" Background="#1E1E1E" Foreground="#D4D4D4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap" BorderThickness="0" Padding="15"/>
+                        <!-- FLOATING TOOLBAR: Camera Controls -->
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="15" Background="#E0F3F3F3" BorderBrush="#D5D5D5" BorderThickness="1" CornerRadius="6" Padding="4">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="10" Color="#000000" Opacity="0.1" ShadowDepth="1" />
+                            </Border.Effect>
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Zoom Controls -->
+                                <Button ToolTip="줌 인" Click="OnZoomInClick" Width="30" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                    <TextBlock Text="➕" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button ToolTip="줌 아웃" Click="OnZoomOutClick" Width="30" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                    <TextBlock Text="➖" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Separator Width="1" Height="20" Background="#CCCCCC" Margin="4,0,4,0"/>
+                                <!-- Preset Views -->
+                                <Button Content="ISO" ToolTip="입체 뷰 (Home)" Click="OnIsoViewClick" Width="32" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand" Foreground="#1C1C1C" FontSize="10.5" FontWeight="SemiBold"/>
+                                <Button Content="TOP" ToolTip="윗면 뷰 (T)" Click="OnTopViewClick" Width="32" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand" Foreground="#1C1C1C" FontSize="10.5" FontWeight="SemiBold"/>
+                                <Button Content="FRNT" ToolTip="앞면 뷰" Click="OnFrontViewClick" Width="32" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand" Foreground="#1C1C1C" FontSize="10.5" FontWeight="SemiBold"/>
+                                <Button Content="LEFT" ToolTip="좌면 뷰" Click="OnLeftViewClick" Width="32" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand" Foreground="#1C1C1C" FontSize="10.5" FontWeight="SemiBold"/>
+                                <Button Content="RGHT" ToolTip="우면 뷰" Click="OnRightViewClick" Width="32" Height="30" Background="Transparent" BorderThickness="0" Cursor="Hand" Foreground="#1C1C1C" FontSize="10.5" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="텍스트 뷰">
+                    <Grid Background="#FFFFFF">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <!-- Text Editor Toolbar -->
+                        <Border Grid.Row="0" Background="#F3F3F3" BorderBrush="#D5D5D5" BorderThickness="0,0,0,1" Padding="8">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="적용 및 3D 갱신" Click="OnApplyTextChangesClick" Padding="12,6" Background="#0067C0" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                                <TextBlock Text="* 텍스트 뷰에서 XML/URDF를 수정하고 적용하면 3D 모델이 업데이트됩니다." VerticalAlignment="Center" Margin="15,0,0,0" Foreground="#666666" FontSize="11" />
+                            </StackPanel>
+                        </Border>
+                        <!-- XML Text Editor -->
+                        <TextBox x:Name="XmlTextBox" Grid.Row="1" AcceptsReturn="True" AcceptsTab="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12.5" Padding="10" BorderThickness="0" Background="#FFFFFF" Foreground="#1C1C1C" />
+                    </Grid>
                 </TabItem>
             </TabControl>
 

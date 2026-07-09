@@ -3,30 +3,49 @@ $ErrorActionPreference = "Stop"
 Write-Output "Stopping any existing instances..."
 Stop-Process -Name "Aura3DRobotConverter" -Force -ErrorAction SilentlyContinue
 
-Write-Output "Starting the application..."
+Write-Output "Starting the application with test model..."
 cd "c:\Users\samsung\proj\model3d\Aura3DRobotConverter"
-Start-Process -FilePath "dotnet" -ArgumentList "run" -WindowStyle Hidden
+Start-Process -FilePath "dotnet" -ArgumentList "run -- C:\Users\samsung\proj\model3d\urdf\differential_drive.urdf" -WindowStyle Hidden
 
 Write-Output "Waiting for the application to build, load, and open the dialog (10 seconds)..."
 Start-Sleep -Seconds 10
 
-Write-Output "Capturing screen..."
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+Write-Output "Finding and clicking QACapture button via UIAutomation..."
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
 
-$screenBounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-$bitmap = New-Object System.Drawing.Bitmap $screenBounds.Width, $screenBounds.Height
-$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-$graphics.CopyFromScreen($screenBounds.Location, [System.Drawing.Point]::Empty, $screenBounds.Size)
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$condition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, "QACapture")
 
-$savePath = "C:\Users\samsung\Downloads\dialog_test_result.png"
-$artifactPath = "C:\Users\samsung\.gemini\antigravity\brain\bd87449f-d102-4343-86a1-c774119df9e2\dialog_test_result.png"
+$btn = $null
+for ($i = 0; $i -lt 15; $i++) {
+    $btn = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+    if ($btn -ne $null) { break }
+    Start-Sleep -Seconds 1
+}
 
-$bitmap.Save($savePath, [System.Drawing.Imaging.ImageFormat]::Png)
-$bitmap.Save($artifactPath, [System.Drawing.Imaging.ImageFormat]::Png)
+if ($btn -ne $null) {
+    try {
+        $invokePattern = $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern) -as [System.Windows.Automation.InvokePattern]
+        $invokePattern.Invoke()
+        Write-Output "Successfully clicked QACapture button!"
+        Start-Sleep -Seconds 3
+    } catch {
+        Write-Output "Failed to invoke QACapture button: $_"
+    }
+} else {
+    Write-Output "Could not find QACapture button."
+}
 
-$graphics.Dispose()
-$bitmap.Dispose()
+$savePath = "C:\Users\samsung\Downloads\nlp_automation_capture.png"
+$artifactPath = "C:\Users\samsung\.gemini\antigravity\brain\e3ce6f0d-669c-4a05-a757-a7ce5759dba9\aura3d_urdf_capture.png"
+
+if (Test-Path $savePath) {
+    Copy-Item -Path $savePath -Destination $artifactPath -Force
+    Write-Output "Screenshot successfully saved to $savePath and copied to artifact directory."
+} else {
+    Write-Output "Error: Captured screenshot not found at $savePath"
+}
 
 Write-Output "Stopping the application..."
 Stop-Process -Name "Aura3DRobotConverter" -Force -ErrorAction SilentlyContinue

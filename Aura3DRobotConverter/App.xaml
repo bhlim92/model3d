@@ -1,8 +1,7 @@
-﻿<Application x:Class="Aura3DRobotConverter.App"
+<Application x:Class="Aura3DRobotConverter.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:Aura3DRobotConverter"
-             StartupUri="MainWindow.xaml">
+             xmlns:local="clr-namespace:Aura3DRobotConverter">
     <Application.Resources>
          
     </Application.Resources>

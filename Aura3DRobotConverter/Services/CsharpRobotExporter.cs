@@ -10,6 +10,20 @@ namespace Aura3DRobotConverter.Services
 {
     public class CsharpRobotExporter
     {
+        public static string GetUrdfText(RobotConfig config)
+        {
+            string tempFile = Path.GetTempFileName();
+            try
+            {
+                BuildUrdf(config, tempFile);
+                return File.ReadAllText(tempFile);
+            }
+            finally
+            {
+                if (File.Exists(tempFile)) File.Delete(tempFile);
+            }
+        }
+
         public static string ExportRobotModel(RobotConfig config, string sessionDir)
         {
             string robotName = config.RobotName ?? "AuraRobot";

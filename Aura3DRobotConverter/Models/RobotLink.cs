@@ -48,5 +48,12 @@ namespace Aura3DRobotConverter.Models
 
         [JsonPropertyName("color_rgba")]
         public float[]? ColorRgba { get; set; }
+
+        // Visual element's own <origin xyz rpy> (local offset of the geometry within the link)
+        [JsonPropertyName("visual_origin_xyz")]
+        public double[] VisualOriginXyz { get; set; } = new double[3] { 0, 0, 0 };
+
+        [JsonPropertyName("visual_origin_rpy")]
+        public double[] VisualOriginRpy { get; set; } = new double[3] { 0, 0, 0 };
     }
 }

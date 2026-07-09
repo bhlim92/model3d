@@ -14,7 +14,9 @@
   <ItemGroup>
     <PackageReference Include="AnyCAD.Foundation.NET" Version="2026.6.12.1032" />
     <PackageReference Include="AnyCAD.Foundation.Win64" Version="2026.6.12.1032" />
-    <PackageReference Include="HelixToolkit.Wpf" Version="3.1.2" />
+    <PackageReference Include="HelixToolkit.Wpf.SharpDX" Version="3.1.2" />
+    <PackageReference Include="SharpDX" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Mathematics" Version="4.2.0" />
   </ItemGroup>
 
 </Project>

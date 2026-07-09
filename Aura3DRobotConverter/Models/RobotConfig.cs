@@ -16,5 +16,11 @@ namespace Aura3DRobotConverter.Models
 
         [JsonPropertyName("joints")]
         public List<RobotJoint> Joints { get; set; } = new List<RobotJoint>();
+
+        [JsonPropertyName("up_axis")]
+        public string UpAxis { get; set; } = "Z";
+
+        [JsonIgnore]
+        public List<AnyCAD.Foundation.TopoShape>? OcpSolids { get; set; }
     }
 }

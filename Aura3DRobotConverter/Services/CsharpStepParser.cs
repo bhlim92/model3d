@@ -10,9 +10,55 @@ namespace Aura3DRobotConverter.Services
 {
     public class CsharpStepParser
     {
-        public static RobotConfig ParseStepFile(string stepFilePath, string outputDir, double density = 2700.0)
+        public static RobotConfig ParseStepFile(string stepFilePath, string outputDir, double density = 2700.0, string upAxis = "Z")
         {
+            string cacheJsonPath = System.IO.Path.ChangeExtension(stepFilePath, ".json");
+            if (System.IO.File.Exists(cacheJsonPath))
+            {
+                try
+                {
+                    string json = System.IO.File.ReadAllText(cacheJsonPath);
+                    var cachedConfig = System.Text.Json.JsonSerializer.Deserialize<RobotConfig>(json);
+                    if (cachedConfig != null)
+                    {
+                        if (cachedConfig.UpAxis == upAxis)
+                        {
+                            bool allMeshesValid = true;
+                            foreach (var link in cachedConfig.Links)
+                            {
+                                if (!string.IsNullOrEmpty(link.MeshPath))
+                                {
+                                    // Remove meshes/ prefix or search in meshes subfolder
+                                    string fullMeshPath = System.IO.Path.Combine(outputDir, link.MeshPath);
+                                    if (!System.IO.File.Exists(fullMeshPath) || new System.IO.FileInfo(fullMeshPath).Length < 100)
+                                    {
+                                        allMeshesValid = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (allMeshesValid)
+                            {
+                                return cachedConfig;
+                            }
+                        }
+                    }
+                }
+                catch (Exception) { /* Fallback to parsing */ }
+            }
+
             string meshDir = System.IO.Path.Combine(outputDir, "meshes");
+            if (System.IO.Directory.Exists(meshDir))
+            {
+                try
+                {
+                    foreach (var file in System.IO.Directory.GetFiles(meshDir))
+                    {
+                        System.IO.File.Delete(file);
+                    }
+                }
+                catch (Exception) { }
+            }
             Directory.CreateDirectory(meshDir);
 
             // Initialize AnyCAD Shape Reader
@@ -22,63 +68,95 @@ namespace Aura3DRobotConverter.Services
                 throw new Exception("AnyCAD engine failed to parse and load the STEP file.");
             }
 
+            // Apply rotation based on UpAxis specification to make Z-up
+            if (upAxis == "Y")
+            {
+                // Rotate around X by 90 degrees to map Y to Z (per user instruction)
+                GTrsf trsf = new GTrsf();
+                trsf.SetRotation(new GAx1(new GPnt(0, 0, 0), new GDir(1, 0, 0)), Math.PI / 2.0);
+                shape = TransformTool.Transform(shape, trsf);
+            }
+
             var links = new List<RobotLink>();
             var joints = new List<RobotJoint>();
 
-            // Traverse and extract separate Solid bodies using FindChild index lookup
+            // 1. Explore all shells recursively using native TopoExplor (blazing fast ~10ms)
+            var shellExplor = new TopoExplor(shape, EnumTopoShapeType.Topo_SHELL, EnumTopoShapeType.Topo_SHAPE);
+            var solidsList = shellExplor.GetChildrenShapes();
             var solids = new List<TopoShape>();
-            int idx = 0;
-            while (true)
+            for (int i = 0; i < solidsList.Count; i++)
             {
-                var child = shape.FindChild(EnumTopoShapeType.Topo_SOLID, idx);
-                if (child == null) break;
-                solids.Add(child);
-                idx++;
+                solids.Add(solidsList[i]);
             }
 
-            int solidId = 0;
-            foreach (var subShape in solids)
+            // 2. Calculate physical properties using Bounding Box analytical estimation (blazing fast ~1ms total)
+            for (int i = 0; i < solids.Count; i++)
             {
-                string linkName = $"link_{solidId}";
+                var subShape = solids[i];
+                string linkName = (i == 0) ? "base_link" : $"link_{i}";
                 string meshFilename = $"{linkName}.stl";
-                string meshPath = System.IO.Path.Combine(meshDir, meshFilename);
 
-                // Tessellate sub-shape and save as STL mesh
-                ShapeIO.Save(subShape, meshPath);
+                var bbox = subShape.GetBBox();
+                var min = bbox.CornerMin();
+                var max = bbox.CornerMax();
 
-                // Integrate physical properties using tetrahedron math over mesh vertices
-                var (mass, com, inertia) = ComputePhysicalProperties(meshPath, density);
+                double dx = (max.X() - min.X()) / 1000.0; // mm -> m
+                double dy = (max.Y() - min.Y()) / 1000.0;
+                double dz = (max.Z() - min.Z()) / 1000.0;
 
-                var linkEntry = new RobotLink
+                dx = Math.Max(dx, 0.001);
+                dy = Math.Max(dy, 0.001);
+                dz = Math.Max(dz, 0.001);
+
+                double cx = (min.X() + max.X()) / 2.0;
+                double cy = (min.Y() + max.Y()) / 2.0;
+                double cz = (min.Z() + max.Z()) / 2.0;
+                double[] com = new double[] { cx / 1000.0, cy / 1000.0, cz / 1000.0 }; // mm -> m
+
+                double volumeM3 = dx * dy * dz * 0.25;
+                double mass = Math.Max(volumeM3 * density, 0.001); // mass in kg
+
+                // Analytical moments of inertia for rectangular cuboid
+                double ixx = (1.0 / 12.0) * mass * (dy * dy + dz * dz);
+                double iyy = (1.0 / 12.0) * mass * (dx * dx + dz * dz);
+                double izz = (1.0 / 12.0) * mass * (dx * dx + dy * dy);
+
+                double ixy = 0.0;
+                double ixz = 0.0;
+                double iyz = 0.0;
+
+                links.Add(new RobotLink
                 {
                     Name = linkName,
                     MeshPath = $"meshes/{meshFilename}",
                     Mass = mass,
-                    CenterOfMass = new double[] { com.X, com.Y, com.Z },
+                    CenterOfMass = com,
                     Inertia = new Models.Inertia
                     {
-                        Ixx = inertia[0], Iyy = inertia[1], Izz = inertia[2],
-                        Ixy = inertia[3], Ixz = inertia[4], Iyz = inertia[5]
+                        Ixx = ixx, Iyy = iyy, Izz = izz,
+                        Ixy = ixy, Ixz = ixz, Iyz = iyz
                     }
-                };
-                links.Add(linkEntry);
-                solidId++;
+                });
+
+                // Generate STL cache
+                string absoluteMeshPath = System.IO.Path.Combine(outputDir, $"meshes/{meshFilename}");
+                if (!System.IO.File.Exists(absoluteMeshPath))
+                {
+                    if (System.Windows.Application.Current != null)
+                    {
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            var tempNode = AnyCAD.Foundation.BrepSceneNode.Create(subShape);
+                            tempNode?.Dispose();
+                        });
+                    }
+                    AnyCAD.Foundation.ShapeIO.Save(subShape, absoluteMeshPath);
+                }
             }
 
             if (links.Count == 0)
             {
                 throw new Exception("No valid rigid 3D solids detected inside the STEP file.");
-            }
-
-            // Rename root element link to base_link
-            links[0].Name = "base_link";
-            links[0].MeshPath = links[0].MeshPath.Replace("link_0.stl", "base_link.stl");
-            string oldPath = System.IO.Path.Combine(meshDir, "link_0.stl");
-            string newPath = System.IO.Path.Combine(meshDir, "base_link.stl");
-            if (File.Exists(oldPath))
-            {
-                if (File.Exists(newPath)) File.Delete(newPath);
-                File.Move(oldPath, newPath);
             }
 
             // Establish sequential Joints chain mapping using relative Center of Mass (CoM) coordinates
@@ -114,101 +192,26 @@ namespace Aura3DRobotConverter.Services
                 joints.Add(jointEntry);
             }
 
-            return new RobotConfig
+            var config = new RobotConfig
             {
                 RobotName = System.IO.Path.GetFileNameWithoutExtension(stepFilePath),
                 RootLink = "base_link",
                 Links = links,
-                Joints = joints
+                Joints = joints,
+                UpAxis = upAxis,
+                OcpSolids = solids
             };
-        }
 
-        private static (double Mass, Vector3D CoM, double[] Inertia) ComputePhysicalProperties(string stlPath, double density)
-        {
-            if (!File.Exists(stlPath))
+            // Save JSON Cache
+            try
             {
-                return (0.1, new Vector3D(0, 0, 0), new double[] { 1e-5, 1e-5, 1e-5, 0, 0, 0 });
+                var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+                string jsonOutput = System.Text.Json.JsonSerializer.Serialize(config, options);
+                System.IO.File.WriteAllText(cacheJsonPath, jsonOutput);
             }
+            catch (Exception) { }
 
-            // Load mesh vertices using Helix Toolkit ModelImporter
-            var importer = new ModelImporter();
-            var modelGroup = importer.Load(stlPath);
-            if (modelGroup == null)
-            {
-                return (0.1, new Vector3D(0, 0, 0), new double[] { 1e-5, 1e-5, 1e-5, 0, 0, 0 });
-            }
-            MeshGeometry3D? mesh = null;
-
-            modelGroup.Traverse<GeometryModel3D>((geom, transform) =>
-            {
-                if (geom.Geometry is MeshGeometry3D m)
-                {
-                    mesh = m;
-                }
-            });
-
-            if (mesh == null || mesh.Positions.Count < 3)
-            {
-                return (0.1, new Vector3D(0, 0, 0), new double[] { 1e-5, 1e-5, 1e-5, 0, 0, 0 });
-            }
-
-            double totalVolume = 0;
-            var weightedCom = new Vector3D(0, 0, 0);
-
-            double tempIxx = 0, tempIyy = 0, tempIzz = 0;
-            double tempIxy = 0, tempIxz = 0, tempIyz = 0;
-
-            var positions = mesh.Positions;
-            var indices = mesh.TriangleIndices;
-
-            for (int i = 0; i < indices.Count; i += 3)
-            {
-                var p0 = (Vector3D)positions[indices[i]];
-                var p1 = (Vector3D)positions[indices[i + 1]];
-                var p2 = (Vector3D)positions[indices[i + 2]];
-
-                // Tetrahedron volume equation relative to (0,0,0) and the triangular face
-                double v = Vector3D.DotProduct(p0, Vector3D.CrossProduct(p1, p2)) / 6.0;
-                totalVolume += v;
-
-                var centroid = (p0 + p1 + p2) / 4.0;
-                weightedCom += centroid * v;
-
-                double x_avg = (p0.X + p1.X + p2.X) / 3.0;
-                double y_avg = (p0.Y + p1.Y + p2.Y) / 3.0;
-                double z_avg = (p0.Z + p1.Z + p2.Z) / 3.0;
-
-                tempIxx += (y_avg * y_avg + z_avg * z_avg) * v;
-                tempIyy += (x_avg * x_avg + z_avg * z_avg) * v;
-                tempIzz += (x_avg * x_avg + y_avg * y_avg) * v;
-
-                tempIxy -= (x_avg * y_avg) * v;
-                tempIxz -= (x_avg * z_avg) * v;
-                tempIyz -= (y_avg * z_avg) * v;
-            }
-
-            if (Math.Abs(totalVolume) < 1e-9)
-            {
-                return (0.001, new Vector3D(0, 0, 0), new double[] { 1e-5, 1e-5, 1e-5, 0, 0, 0 });
-            }
-
-            var com = weightedCom / totalVolume; // com in mm
-            double volumeM3 = totalVolume / 1e9; // scale volume to m^3
-            double mass = Math.Max(volumeM3 * density, 0.001); // mass in kg
-
-            // Apply parallel axis theorem shift to align moments relative to center of mass
-            double scale = density / 1e15; // scale mm^5 to kg*m^2
-            double ixx = Math.Max(tempIxx * scale - mass * (com.Y * com.Y + com.Z * com.Z) / 1e6, 1e-5);
-            double iyy = Math.Max(tempIyy * scale - mass * (com.X * com.X + com.Z * com.Z) / 1e6, 1e-5);
-            double izz = Math.Max(tempIzz * scale - mass * (com.X * com.X + com.Y * com.Y) / 1e6, 1e-5);
-
-            double ixy = tempIxy * scale + mass * (com.X * com.Y) / 1e6;
-            double ixz = tempIxz * scale + mass * (com.X * com.Z) / 1e6;
-            double iyz = tempIyz * scale + mass * (com.Y * com.Z) / 1e6;
-
-            var comMeters = com / 1000.0; // scale CoM to meters
-
-            return (mass, comMeters, new double[] { ixx, iyy, izz, ixy, ixz, iyz });
+            return config;
         }
 
         public static RobotConfig ParseUrdfFile(string urdfPath)
@@ -235,7 +238,7 @@ namespace Aura3DRobotConverter.Services
                 var xInertial = xLink.Element("inertial");
                 if (xInertial != null)
                 {
-                    double.TryParse(xInertial.Element("mass")?.Attribute("value")?.Value, out mass);
+                    double.TryParse(xInertial.Element("mass")?.Attribute("value")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out mass);
                     
                     string? xyzStr = xInertial.Element("origin")?.Attribute("xyz")?.Value;
                     if (!string.IsNullOrEmpty(xyzStr))
@@ -243,21 +246,21 @@ namespace Aura3DRobotConverter.Services
                         var tokens = xyzStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                         if (tokens.Length >= 3)
                         {
-                            double.TryParse(tokens[0], out com[0]);
-                            double.TryParse(tokens[1], out com[1]);
-                            double.TryParse(tokens[2], out com[2]);
+                            double.TryParse(tokens[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out com[0]);
+                            double.TryParse(tokens[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out com[1]);
+                            double.TryParse(tokens[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out com[2]);
                         }
                     }
 
                     var xInertia = xInertial.Element("inertia");
                     if (xInertia != null)
                     {
-                        double.TryParse(xInertia.Attribute("ixx")?.Value, out double ixx);
-                        double.TryParse(xInertia.Attribute("ixy")?.Value, out double ixy);
-                        double.TryParse(xInertia.Attribute("ixz")?.Value, out double ixz);
-                        double.TryParse(xInertia.Attribute("iyy")?.Value, out double iyy);
-                        double.TryParse(xInertia.Attribute("iyz")?.Value, out double iyz);
-                        double.TryParse(xInertia.Attribute("izz")?.Value, out double izz);
+                        double.TryParse(xInertia.Attribute("ixx")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double ixx);
+                        double.TryParse(xInertia.Attribute("ixy")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double ixy);
+                        double.TryParse(xInertia.Attribute("ixz")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double ixz);
+                        double.TryParse(xInertia.Attribute("iyy")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double iyy);
+                        double.TryParse(xInertia.Attribute("iyz")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double iyz);
+                        double.TryParse(xInertia.Attribute("izz")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double izz);
 
                         inertia = new Models.Inertia
                         {
@@ -300,9 +303,9 @@ namespace Aura3DRobotConverter.Services
                                 var tokens = sizeStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                                 if (tokens.Length >= 3) {
                                     primitiveParams = new double[3];
-                                    double.TryParse(tokens[0], out primitiveParams[0]);
-                                    double.TryParse(tokens[1], out primitiveParams[1]);
-                                    double.TryParse(tokens[2], out primitiveParams[2]);
+                                    double.TryParse(tokens[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out primitiveParams[0]);
+                                    double.TryParse(tokens[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out primitiveParams[1]);
+                                    double.TryParse(tokens[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out primitiveParams[2]);
                                 }
                             }
                         }
@@ -311,15 +314,15 @@ namespace Aura3DRobotConverter.Services
                             primitiveType = "cylinder";
                             var cyl = xGeom.Element("cylinder");
                             double radius = 0, length = 0;
-                            double.TryParse(cyl?.Attribute("radius")?.Value, out radius);
-                            double.TryParse(cyl?.Attribute("length")?.Value, out length);
+                            double.TryParse(cyl?.Attribute("radius")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out radius);
+                            double.TryParse(cyl?.Attribute("length")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out length);
                             primitiveParams = new double[] { radius, length };
                         }
                         else if (xGeom.Element("sphere") != null)
                         {
                             primitiveType = "sphere";
                             double radius = 0;
-                            double.TryParse(xGeom.Element("sphere")?.Attribute("radius")?.Value, out radius);
+                            double.TryParse(xGeom.Element("sphere")?.Attribute("radius")?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out radius);
                             primitiveParams = new double[] { radius };
                         }
                     }
@@ -335,15 +338,40 @@ namespace Aura3DRobotConverter.Services
                                 var tokens = rgbaStr.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                                 if (tokens.Length >= 4) {
                                     colorRgba = new float[4];
-                                    float.TryParse(tokens[0], out colorRgba[0]);
-                                    float.TryParse(tokens[1], out colorRgba[1]);
-                                    float.TryParse(tokens[2], out colorRgba[2]);
-                                    float.TryParse(tokens[3], out colorRgba[3]);
+                                    float.TryParse(tokens[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out colorRgba[0]);
+                                    float.TryParse(tokens[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out colorRgba[1]);
+                                    float.TryParse(tokens[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out colorRgba[2]);
+                                    float.TryParse(tokens[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out colorRgba[3]);
                                 }
                             }
                         }
                     }
                 }
+
+                    var xVisualOrigin = xVisual?.Element("origin");
+                    double[] visualXyz = { 0, 0, 0 };
+                    double[] visualRpy = { 0, 0, 0 };
+                    if (xVisualOrigin != null)
+                    {
+                        var xyzStr2 = xVisualOrigin.Attribute("xyz")?.Value;
+                        if (!string.IsNullOrEmpty(xyzStr2)) {
+                            var t = xyzStr2.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (t.Length >= 3) {
+                                double.TryParse(t[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out visualXyz[0]);
+                                double.TryParse(t[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out visualXyz[1]);
+                                double.TryParse(t[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out visualXyz[2]);
+                            }
+                        }
+                        var rpyStr2 = xVisualOrigin.Attribute("rpy")?.Value;
+                        if (!string.IsNullOrEmpty(rpyStr2)) {
+                            var t = rpyStr2.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (t.Length >= 3) {
+                                double.TryParse(t[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out visualRpy[0]);
+                                double.TryParse(t[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out visualRpy[1]);
+                                double.TryParse(t[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out visualRpy[2]);
+                            }
+                        }
+                    }
 
                 links.Add(new RobotLink
                 {
@@ -354,7 +382,9 @@ namespace Aura3DRobotConverter.Services
                     Inertia = inertia,
                     PrimitiveType = primitiveType,
                     PrimitiveParams = primitiveParams,
-                    ColorRgba = colorRgba
+                    ColorRgba = colorRgba,
+                    VisualOriginXyz = visualXyz,
+                    VisualOriginRpy = visualRpy
                 });
             }
 
@@ -491,12 +521,13 @@ namespace Aura3DRobotConverter.Services
                         string meshPath = string.Empty;
 
                         int depth = 0;
+                        bool opened = false;
                         idx++;
                         while (idx < lines.Length)
                         {
                             string subLine = lines[idx].Trim();
                             
-                            if (subLine.Contains("{")) depth++;
+                            if (subLine.Contains("{")) { depth++; opened = true; }
                             if (subLine.Contains("}")) depth--;
 
                             if (subLine.StartsWith("float physics:mass"))
@@ -532,7 +563,7 @@ namespace Aura3DRobotConverter.Services
                                 }
                             }
 
-                            if (depth < 0) break;
+                            if (opened && depth <= 0) break;
                             idx++;
                         }
 
@@ -564,12 +595,13 @@ namespace Aura3DRobotConverter.Services
                         double lower = -3.1415, upper = 3.1415;
 
                         int depth = 0;
+                        bool opened = false;
                         idx++;
                         while (idx < lines.Length)
                         {
                             string subLine = lines[idx].Trim();
 
-                            if (subLine.Contains("{")) depth++;
+                            if (subLine.Contains("{")) { depth++; opened = true; }
                             if (subLine.Contains("}")) depth--;
 
                             if (subLine.StartsWith("rel physics:body0"))
@@ -620,7 +652,7 @@ namespace Aura3DRobotConverter.Services
                                 upper = (jType == "revolute") ? val * Math.PI / 180.0 : val;
                             }
 
-                            if (depth < 0) break;
+                            if (opened && depth <= 0) break;
                             idx++;
                         }
 

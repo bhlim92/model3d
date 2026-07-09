@@ -49,6 +49,14 @@ namespace UniversalTestAutomator
             if (!string.IsNullOrEmpty(targetApp))
             {
                 string exeName = targetApp.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? targetApp : targetApp + ".exe";
+                if (exeName.Equals("Aura3DRobotConverter.exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    string absPath = @"C:\Users\samsung\proj\model3d\Aura3DRobotConverter\bin\Debug\net9.0-windows\Aura3DRobotConverter.exe";
+                    if (File.Exists(absPath))
+                    {
+                        exeName = absPath;
+                    }
+                }
                 try
                 {
                     Console.WriteLine($"[실행] '{exeName}' 구동 시도 중...");
