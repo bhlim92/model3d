@@ -59,9 +59,17 @@
               "target": "Package",
               "version": "[2026.6.12.1032, )"
             },
-            "HelixToolkit.Wpf": {
+            "HelixToolkit.Wpf.SharpDX": {
               "target": "Package",
               "version": "[3.1.2, )"
+            },
+            "SharpDX": {
+              "target": "Package",
+              "version": "[4.2.0, )"
+            },
+            "SharpDX.Mathematics": {
+              "target": "Package",
+              "version": "[4.2.0, )"
             }
           },
           "imports": [

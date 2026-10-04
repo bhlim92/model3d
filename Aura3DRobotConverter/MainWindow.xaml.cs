@@ -1231,6 +1231,7 @@ namespace Aura3DRobotConverter
             if (sender is TreeViewItem tvi)
             {
                 tvi.BringIntoView();
+                e.Handled = true;
             }
         }
 
